@@ -7,38 +7,62 @@ export default function Home() {
   const [scripts, setScripts] = useState([]);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
+  const [url, setUrl] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [selectedScript, setSelectedScript] = useState(null);
+  const [websocketPort, setWebsocketPort] = useState(null);
 
   useEffect(() => {
     const fetchScripts = async () => {
       try {
         const response = await axios.get('http://localhost:5001/list-scripts');
-        console.log('Scripts fetched:', response.data.scripts); // Debugging line
+        console.log('Scripts fetched:', response.data.scripts);
         setScripts(response.data.scripts);
       } catch (err) {
-        console.error('Failed to fetch scripts:', err); // Debugging line
+        console.error('Failed to fetch scripts:', err);
         setError('Failed to fetch scripts: ' + err.message);
       }
     };
     fetchScripts();
+
+    const fetchWebSocketPort = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/get-websocket-port');
+        setWebsocketPort(response.data.port);
+      } catch (err) {
+        console.error('Failed to fetch WebSocket port:', err);
+        setError('Failed to fetch WebSocket port: ' + err.message);
+      }
+    };
+    fetchWebSocketPort();
   }, []);
 
-  const runScript = async (script) => {
+  const handleUrlSubmit = async () => {
+    if (!url || !selectedScript || !websocketPort) return;
     try {
-      const response = await axios.post('http://localhost:5001/run-script', { script });
-      console.log('Script output:', response.data.output); // Debugging line
-      setOutput(response.data.output);
-      setError(response.data.error || ''); // Clear any previous errors
+      const websocket = new WebSocket(`ws://localhost:${websocketPort}`);
+      websocket.onopen = () => {
+        websocket.send(`${selectedScript},${url}`);
+      };
+      websocket.onmessage = (event) => {
+        setOutput(event.data);
+        setShowUrlInput(false);
+        setError('');
+      };
+      websocket.onerror = (event) => {
+        console.error('WebSocket error:', event);  // Add this line
+        setError('WebSocket error: ' + (event.message || 'Unknown error'));
+      };
     } catch (err) {
-      console.error('Error running script:', err); // Debugging line
-      if (err.response) {
-        setError(err.response.data.error);
-      } else if (err.request) {
-        setError('No response received from the server.');
-      } else {
-        setError('Error in setting up the request: ' + err.message);
-      }
-      setOutput(''); // Clear any previous output
+      console.error('Error running script:', err);
+      setError('Error in setting up the request: ' + err.message);
+      setOutput('');
     }
+  };
+
+  const runScript = (script) => {
+    setSelectedScript(script);
+    setShowUrlInput(true);
   };
 
   return (
@@ -56,6 +80,23 @@ export default function Home() {
         ))
       ) : (
         <p>No scripts found.</p>
+      )}
+      {showUrlInput && (
+        <div className="mt-4">
+          <input
+            type="text"
+            placeholder="Enter URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="border p-2 rounded"
+          />
+          <button
+            onClick={handleUrlSubmit}
+            className="bg-green-500 text-white px-4 py-2 rounded ml-2"
+          >
+            Submit
+          </button>
+        </div>
       )}
       {output && (
         <div className="mt-4 p-2 bg-green-200 text-green-800 rounded">
