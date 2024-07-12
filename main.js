@@ -3,6 +3,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 let pythonProcess;
+let websocketProcess;
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -23,6 +24,9 @@ function createWindow() {
   win.on('closed', () => {
     if (pythonProcess) {
       pythonProcess.kill();
+    }
+    if (websocketProcess) {
+      websocketProcess.kill();
     }
   });
 }
@@ -61,6 +65,9 @@ app.whenReady().then(() => {
 app.on('window-all-closed', function () {
   if (pythonProcess) {
     pythonProcess.kill();
+  }
+  if (websocketProcess) {
+    websocketProcess.kill();
   }
   if (process.platform !== 'darwin') app.quit();
 });
