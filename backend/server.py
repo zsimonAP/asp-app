@@ -1,19 +1,21 @@
-# backend/server.py
-
+import asyncio
+import json
+import os
+import subprocess
+import threading
+import websockets
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import subprocess
-import os
-import threading
-import asyncio
-import websockets
-import socket
-import json
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 CORS(app)
 
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
@@ -23,23 +25,10 @@ def list_scripts():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/run-script', methods=['POST'])
-def run_script():
-    try:
-        script_name = request.json.get('script')
-        script_path = os.path.join(SCRIPTS_DIR, script_name)
-        if not os.path.isfile(script_path):
-            return jsonify({"error": "Script not found"}), 404
-
-        result = subprocess.run(['python', script_path], capture_output=True, text=True)
-        return jsonify({"output": result.stdout.strip(), "error": result.stderr.strip()}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/get-websocket-port', methods=['GET'])
 def get_websocket_port():
     try:
-        with open("websocket_port.json", "r") as file:
+        with open(CONFIG_PATH, "r") as file:
             data = json.load(file)
         return jsonify({"port": data["port"]}), 200
     except Exception as e:
@@ -47,17 +36,40 @@ def get_websocket_port():
 
 async def handler(websocket, path):
     try:
-        message = await websocket.recv()
-        script_name, url = message.split(',')
+        script_name = await websocket.recv()
         script_path = os.path.join(SCRIPTS_DIR, script_name)
-        result = subprocess.run(['python', script_path, url], capture_output=True, text=True)
-        await websocket.send(result.stdout.strip())
+        
+        process = subprocess.Popen(['python', script_path],
+                                   stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE,
+                                   text=True)
+
+        while True:
+            output = process.stdout.readline()
+            if "WAIT_FOR_INPUT" in output:
+                await websocket.send("WAIT_FOR_INPUT")
+                user_input = await websocket.recv()
+                process.stdin.write(user_input + '\n')
+                process.stdin.flush()
+            if output == '' and process.poll() is not None:
+                break
+            await websocket.send(output.strip())
+        
+        error = process.stderr.read()
+        if error:
+            await websocket.send(error.strip())
+        
+    except websockets.exceptions.ConnectionClosedError as e:
+        logging.error(f"Connection closed with error: {e}")
     except Exception as e:
+        logging.error(f"Handler exception: {e}")
         await websocket.send(str(e))
 
 def write_port_to_file(port):
-    with open("websocket_port.json", "w") as file:
+    with open(CONFIG_PATH, "w") as file:
         json.dump({"port": port}, file)
+    logging.info(f"WebSocket port {port} written to {CONFIG_PATH}")
 
 def start_websocket_server():
     asyncio.set_event_loop(asyncio.new_event_loop())
@@ -66,10 +78,12 @@ def start_websocket_server():
     server = loop.run_until_complete(start_server)
     port = server.sockets[0].getsockname()[1]  # Get the port number assigned
     write_port_to_file(port)
-    print(f"WebSocket server started on port {port}")
+    logging.info(f"WebSocket server started on port {port}")
     loop.run_forever()
 
 if __name__ == "__main__":
-    threading.Thread(target=start_websocket_server).start()
-    print("Starting Flask server...")
+    # Ensure only one WebSocket server instance
+    if threading.active_count() == 1:
+        threading.Thread(target=start_websocket_server).start()
+    logging.info("Starting Flask server...")
     app.run(debug=True, host='0.0.0.0', port=5001)

@@ -11,15 +11,14 @@ export default function Home() {
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
+  const [websocket, setWebsocket] = useState(null);
 
   useEffect(() => {
     const fetchScripts = async () => {
       try {
         const response = await axios.get('http://localhost:5001/list-scripts');
-        console.log('Scripts fetched:', response.data.scripts);
         setScripts(response.data.scripts);
       } catch (err) {
-        console.error('Failed to fetch scripts:', err);
         setError('Failed to fetch scripts: ' + err.message);
       }
     };
@@ -30,39 +29,35 @@ export default function Home() {
         const response = await axios.get('http://localhost:5001/get-websocket-port');
         setWebsocketPort(response.data.port);
       } catch (err) {
-        console.error('Failed to fetch WebSocket port:', err);
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
     fetchWebSocketPort();
   }, []);
 
-  const handleUrlSubmit = async () => {
-    if (!url || !selectedScript || !websocketPort) return;
-    try {
-      const websocket = new WebSocket(`ws://localhost:${websocketPort}`);
-      websocket.onopen = () => {
-        websocket.send(`${selectedScript},${url}`);
-      };
-      websocket.onmessage = (event) => {
-        setOutput(event.data);
-        setShowUrlInput(false);
-        setError('');
-      };
-      websocket.onerror = (event) => {
-        console.error('WebSocket error:', event);  // Add this line
-        setError('WebSocket error: ' + (event.message || 'Unknown error'));
-      };
-    } catch (err) {
-      console.error('Error running script:', err);
-      setError('Error in setting up the request: ' + err.message);
-      setOutput('');
-    }
+  const handleUrlSubmit = () => {
+    if (!url || !websocket) return;
+    websocket.send(url);
+    setShowUrlInput(false);
   };
 
   const runScript = (script) => {
     setSelectedScript(script);
-    setShowUrlInput(true);
+    const ws = new WebSocket(`ws://localhost:${websocketPort}`);
+    ws.onopen = () => {
+      ws.send(script);
+    };
+    ws.onmessage = (event) => {
+      if (event.data === "WAIT_FOR_INPUT") {
+        setShowUrlInput(true);
+      } else {
+        setOutput(prevOutput => prevOutput + '\n' + event.data);
+      }
+    };
+    ws.onerror = (event) => {
+      setError('WebSocket error: ' + (event.message || 'Unknown error'));
+    };
+    setWebsocket(ws);
   };
 
   return (
@@ -88,7 +83,7 @@ export default function Home() {
             placeholder="Enter URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="border p-2 rounded"
+            className="border p-2 rounded text-black"
           />
           <button
             onClick={handleUrlSubmit}
@@ -101,13 +96,13 @@ export default function Home() {
       {output && (
         <div className="mt-4 p-2 bg-green-200 text-green-800 rounded">
           <h2 className="text-lg font-semibold">Output:</h2>
-          <p>{output}</p>
+          <pre>{output}</pre>
         </div>
       )}
       {error && (
         <div className="mt-4 p-2 bg-red-200 text-red-800 rounded">
           <h2 className="text-lg font-semibold">Error:</h2>
-          <p>{error}</p>
+          <pre>{error}</pre>
         </div>
       )}
     </div>
