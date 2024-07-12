@@ -27,3 +27,4 @@ if __name__ == "__main__":
     
     time.sleep(10)  # Keep the browser open for a while to see the result
     driver.quit()
+    print("SCRIPT_COMPLETED", flush=True)

@@ -50,6 +50,13 @@ export default function Home() {
     ws.onmessage = (event) => {
       if (event.data === "WAIT_FOR_INPUT") {
         setShowUrlInput(true);
+      } else if (event.data === "SCRIPT_COMPLETED") {
+        // Reset state when script is done
+        setShowUrlInput(false);
+        setOutput('');
+        setUrl('');
+        setSelectedScript(null);
+        ws.close();
       } else {
         setOutput(prevOutput => prevOutput + '\n' + event.data);
       }
