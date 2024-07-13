@@ -31,7 +31,9 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  const { default: fetch } = await import('node-fetch'); // Dynamic import of node-fetch
+
   // Path to the Python executable in the virtual environment
   const pythonPath = process.platform === 'win32' 
     ? path.join(__dirname, 'env', 'Scripts', 'python.exe') 
@@ -54,6 +56,21 @@ app.whenReady().then(() => {
   pythonProcess.on('close', (code) => {
     console.log(`Python server exited with code ${code}`);
   });
+
+  // Wait for the server to start and get the WebSocket port
+  let websocketPort;
+  while (!websocketPort) {
+    try {
+      const response = await fetch('http://localhost:5001/get-websocket-port');
+      const data = await response.json();
+      websocketPort = data.port;
+    } catch (error) {
+      console.error('Error fetching WebSocket port:', error);
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  console.log(`WebSocket server running on port ${websocketPort}`);
 
   createWindow();
 
