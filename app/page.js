@@ -16,7 +16,7 @@ export default function Home() {
   useEffect(() => {
     const fetchScripts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-scripts');
+        const response = await axios.get('/api/list-scripts');
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
@@ -26,7 +26,7 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/get-websocket-port');
+        const response = await axios.get('/api/get-websocket-port');
         setWebsocketPort(response.data.port);
       } catch (err) {
         setError('Failed to fetch WebSocket port: ' + err.message);
