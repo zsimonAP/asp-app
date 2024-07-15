@@ -16,7 +16,7 @@ export default function Home() {
   useEffect(() => {
     const fetchScripts = async () => {
       try {
-        const response = await axios.get('/api/list-scripts');
+        const response = await axios.get('http://localhost:5001/list-scripts');
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
@@ -26,7 +26,7 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
-        const response = await axios.get('/api/get-websocket-port');
+        const response = await axios.get('http://localhost:5001/get-websocket-port');
         setWebsocketPort(response.data.port);
       } catch (err) {
         setError('Failed to fetch WebSocket port: ' + err.message);
@@ -69,13 +69,13 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-6 bg-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-blue-700 text-center">Python Automation Runner</h1>
+      <h1 className="text-3xl font-bold mb-6 text-blue-700">Python Automation Runner</h1>
       {scripts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {scripts.map((script) => (
             <button
               key={script}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md w-full"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md"
               onClick={() => runScript(script)}
             >
               Run {script}
@@ -83,20 +83,20 @@ export default function Home() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-600 text-center">No scripts found.</p>
+        <p className="text-gray-600">No scripts found.</p>
       )}
       {showUrlInput && (
-        <div className="mt-6 flex flex-col sm:flex-row items-center">
+        <div className="mt-6 flex">
           <input
             type="text"
             placeholder="Enter URL"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="border border-gray-300 p-2 rounded-lg flex-grow sm:mr-2 mb-2 sm:mb-0"
+            className="border border-gray-300 p-2 rounded-l-lg flex-grow"
           />
           <button
             onClick={handleUrlSubmit}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md"
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-r-lg shadow-md"
           >
             Submit
           </button>
