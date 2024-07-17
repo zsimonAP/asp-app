@@ -2,7 +2,7 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { createServer } = require('http');
 const next = require('next');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 
 let pythonProcess;
@@ -32,30 +32,46 @@ function createWindow(url) {
   });
 }
 
-async function waitForNextJsServer() {
-  let serverReady = false;
-  let startUrl = 'http://localhost:3000';
-  const ports = [3000, 3001, 3002, 3003, 3004];
-
-  const fetch = (await import('node-fetch')).default; // Dynamically import node-fetch
-
-  while (!serverReady) {
-    for (const port of ports) {
+function waitForNextJsServer(port = 3000) {
+  return new Promise((resolve) => {
+    const interval = setInterval(async () => {
       try {
         const response = await fetch(`http://localhost:${port}`);
         if (response.ok) {
-          startUrl = `http://localhost:${port}`;
-          serverReady = true;
-          break;
+          clearInterval(interval);
+          console.log(`Next.js server is ready at http://localhost:${port}.`);
+          resolve(`http://localhost:${port}`);
         }
       } catch (error) {
         console.log(`Waiting for Next.js server on port ${port}...`);
       }
+    }, 1000);
+  });
+}
+
+function killPort(port) {
+  try {
+    console.log(`Killing process on port ${port}...`);
+    const platform = process.platform;
+    let command;
+
+    if (platform === 'win32') {
+      command = `netstat -ano | findstr :${port}`;
+      const processOutput = execSync(command).toString();
+      const pid = processOutput.split(/\s+/)[4];
+      execSync(`taskkill /PID ${pid} /F`);
+    } else {
+      command = `lsof -ti:${port}`;
+      const processOutput = execSync(command).toString().trim();
+      if (processOutput) {
+        execSync(`kill -9 ${processOutput}`);
+      }
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log(`Killed process on port ${port}.`);
+  } catch (err) {
+    console.error(`Failed to kill process on port ${port}: ${err.message}`);
   }
-  console.log(`Next.js server is ready at ${startUrl}.`);
-  return startUrl;
 }
 
 app.whenReady().then(async () => {
@@ -89,8 +105,6 @@ app.whenReady().then(async () => {
     console.log('> Ready on http://localhost:3000');
   });
 
-  const startUrl = 'http://localhost:3000';
-
   const appPath = process.resourcesPath || app.getAppPath();
   const pythonPath = process.platform === 'win32' 
     ? path.join(appPath, 'env', 'Scripts', 'python.exe') 
@@ -112,7 +126,19 @@ app.whenReady().then(async () => {
     return;
   }
 
-  pythonProcess = spawn(pythonPath, [serverScriptPath], { cwd: path.join(appPath, 'backend') });
+  // Kill any process using port 5001
+  killPort(5001);
+
+  // Activate the virtual environment and start the Python server
+  const activateCommand = process.platform === 'win32' 
+    ? `${path.join(appPath, 'env', 'Scripts', 'activate')}`
+    : `source ${path.join(appPath, 'env', 'bin', 'activate')}`;
+  
+  const activateScript = process.platform === 'win32' 
+    ? `cmd.exe /c ${activateCommand} && ${pythonPath} ${serverScriptPath}`
+    : `bash -c "${activateCommand} && exec ${pythonPath} ${serverScriptPath}"`;
+
+  pythonProcess = spawn(activateScript, [], { shell: true });
 
   pythonProcess.stdout.on('data', (data) => {
     console.log(`stdout: ${data}`);
@@ -126,6 +152,7 @@ app.whenReady().then(async () => {
     console.log(`Python server exited with code ${code}`);
   });
 
+  const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
   createWindow(startUrl);
 
   app.on('activate', function () {
