@@ -16,9 +16,12 @@ export default function Home() {
   useEffect(() => {
     const fetchScripts = async () => {
       try {
+        console.log("Fetching scripts from Flask server...");
         const response = await axios.get('http://localhost:5001/list-scripts');
+        console.log("Scripts fetched successfully:", response.data.scripts);
         setScripts(response.data.scripts);
       } catch (err) {
+        console.error("Failed to fetch scripts:", err);
         setError('Failed to fetch scripts: ' + err.message);
       }
     };
@@ -26,9 +29,12 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
+        console.log("Fetching WebSocket port from Flask server...");
         const response = await axios.get('http://localhost:5001/get-websocket-port');
+        console.log("WebSocket port fetched successfully:", response.data.port);
         setWebsocketPort(response.data.port);
       } catch (err) {
+        console.error("Failed to fetch WebSocket port:", err);
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
@@ -43,11 +49,14 @@ export default function Home() {
 
   const runScript = (script) => {
     setSelectedScript(script);
+    console.log(`Connecting to WebSocket server on port ${websocketPort}...`);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
     ws.onopen = () => {
+      console.log("WebSocket connection opened. Sending script name...");
       ws.send(script);
     };
     ws.onmessage = (event) => {
+      console.log("Received message from WebSocket:", event.data);
       if (event.data === "WAIT_FOR_INPUT") {
         setShowUrlInput(true);
       } else if (event.data === "SCRIPT_COMPLETED") {
@@ -62,6 +71,7 @@ export default function Home() {
       }
     };
     ws.onerror = (event) => {
+      console.error("WebSocket error:", event);
       setError('WebSocket error: ' + (event.message || 'Unknown error'));
     };
     setWebsocket(ws);
