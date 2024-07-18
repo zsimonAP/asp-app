@@ -32,9 +32,17 @@ jobs:
       - name: Debug environment variables
         run: printenv
 
+      - name: List dist directory
+        run: ls -alh dist
+
+      - name: Debug GH_TOKEN permissions
+        run: |
+          echo "GH_TOKEN Permissions"
+          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" https://api.github.com/user
+
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: 'dist/*.{exe,dmg,zip}'
+          files: 'dist/*.zip'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
