@@ -19,6 +19,7 @@ jobs:
           node-version: '18.17.0'
 
       - name: Install Wine
+        if: runner.os != 'macOS'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt update
@@ -27,18 +28,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Ensure dmg-license is installed
+      - name: Install dmg-license (macOS only)
+        if: runner.os == 'macOS'
         run: npm install dmg-license --save-dev
 
       - name: Build Electron app
         run: npm run build
 
       - name: Package Electron app for Windows
+        if: runner.os != 'macOS'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run electron:build -- --win
 
       - name: Package Electron app for macOS
+        if: runner.os == 'macOS'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run electron:build -- --mac
@@ -66,6 +70,7 @@ jobs:
           prerelease: false
 
       - name: Upload Release Assets (Windows)
+        if: runner.os != 'macOS'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -76,6 +81,7 @@ jobs:
           asset_content_type: application/zip
 
       - name: Upload Release Assets (macOS)
+        if: runner.os == 'macOS'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
