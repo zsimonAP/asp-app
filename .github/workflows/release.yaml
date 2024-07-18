@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  release:
+  release_windows:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,6 @@ jobs:
           node-version: '18.17.0'
 
       - name: Install Wine
-        if: runner.os != 'macOS'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt update
@@ -28,35 +27,19 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install macOS dependencies
-        if: runner.os == 'macOS'
-        run: npm install dmg-license --save-dev
-
       - name: Build Electron app
         run: npm run build
 
       - name: Package Electron app for Windows
-        if: runner.os != 'macOS'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run electron:build -- --win
-
-      - name: Package Electron app for macOS
-        if: runner.os == 'macOS'
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run electron:build -- --mac
 
       - name: Debug environment variables
         run: printenv
 
       - name: List dist directory
         run: ls -alh dist
-
-      - name: Debug GH_TOKEN permissions
-        run: |
-          echo "GH_TOKEN Permissions"
-          curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" https://api.github.com/user
 
       - name: Create GitHub Release
         id: create_release
@@ -70,7 +53,6 @@ jobs:
           prerelease: false
 
       - name: Upload Release Assets (Windows)
-        if: runner.os != 'macOS'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -80,8 +62,36 @@ jobs:
           asset_name: associated-pension-automation-hub-1.0.0-win.zip
           asset_content_type: application/zip
 
+  release_macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.17.0'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: npm run build
+
+      - name: Package Electron app for macOS
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npm run electron:build -- --mac
+
+      - name: Debug environment variables
+        run: printenv
+
+      - name: List dist directory
+        run: ls -alh dist
+
       - name: Upload Release Assets (macOS)
-        if: runner.os == 'macOS'
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
