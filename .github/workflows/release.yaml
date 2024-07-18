@@ -108,6 +108,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.0-mac.zip
-          asset_name: associated-pension-automation-hub-1.0.0-mac.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.0-arm64-mac.zip
+          asset_name: associated-pension-automation-hub-1.0.0-arm64-mac.zip
           asset_content_type: application/zip
