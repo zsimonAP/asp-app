@@ -32,4 +32,5 @@ jobs:
         with:
           files: 'dist/*.{exe,dmg,zip}'
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_UPDATE_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
