@@ -27,9 +27,7 @@ jobs:
       - name: Package Electron app
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "GH_TOKEN is set"
-          npm run electron:build
+        run: npm run electron:build
 
       - name: Debug environment variables
         run: printenv

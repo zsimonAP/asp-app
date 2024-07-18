@@ -76,8 +76,8 @@
     "publish": {
       "provider": "github",
       "owner": "zsimonAP",
-      "repo": "asp-app",
-      "token": "$GH_TOKEN"
+      "repo": "asp-app"
     }
   }
 }
+
