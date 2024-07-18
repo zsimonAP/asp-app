@@ -63,7 +63,15 @@
       "buildResources": "assets"
     },
     "mac": {
-      "identity": null
+      "identity": null,
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "zip"]
+    },
+    "linux": {
+      "target": ["zip"],
+      "category": "Utility"
     },
     "publish": {
       "provider": "github",

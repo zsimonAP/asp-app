@@ -30,6 +30,6 @@ jobs:
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
         with:
-          files: 'dist/*.exe,dist/*.dmg,dist/*.AppImage'
+          files: 'dist/*.{exe,dmg,zip}'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_UPDATE_TOKEN }}
