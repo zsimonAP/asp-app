@@ -16,10 +16,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '18.17.0' 
+          node-version: '18.17.0' # Update to the required Node.js version
 
       - name: Install dependencies
         run: npm install
+
+      - name: Install Snapcraft
+        run: sudo snap install snapcraft --classic
 
       - name: Build Electron app
         run: npm run build
