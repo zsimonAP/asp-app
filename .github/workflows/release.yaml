@@ -40,9 +40,23 @@ jobs:
           echo "GH_TOKEN Permissions"
           curl -H "Authorization: token ${{ secrets.GH_TOKEN }}" https://api.github.com/user
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: 'dist/*.zip'
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/associated-pension-automation-hub-1.0.0.zip
+          asset_name: associated-pension-automation-hub-1.0.0.zip
+          asset_content_type: application/zip
