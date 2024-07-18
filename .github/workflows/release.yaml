@@ -24,10 +24,15 @@ jobs:
       - name: Build Electron app
         run: npm run build
 
-      - name: Package Electron app
+      - name: Package Electron app for Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run electron:build
+        run: npm run electron:build -- --win
+
+      - name: Package Electron app for macOS
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: npm run electron:build -- --mac
 
       - name: Debug environment variables
         run: printenv
@@ -51,12 +56,22 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload Release Assets
+      - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.0.zip
-          asset_name: associated-pension-automation-hub-1.0.0.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.0-win.zip
+          asset_name: associated-pension-automation-hub-1.0.0-win.zip
+          asset_content_type: application/zip
+
+      - name: Upload Release Assets (macOS)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/associated-pension-automation-hub-1.0.0-mac.zip
+          asset_name: associated-pension-automation-hub-1.0.0-mac.zip
           asset_content_type: application/zip
