@@ -25,7 +25,14 @@ jobs:
         run: npm run build
 
       - name: Package Electron app
-        run: npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          echo "GH_TOKEN is set"
+          npm run electron:build
+
+      - name: Debug environment variables
+        run: printenv
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v1
@@ -33,4 +40,3 @@ jobs:
           files: 'dist/*.{exe,dmg,zip}'
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
