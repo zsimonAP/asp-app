@@ -4,11 +4,18 @@ const { createServer } = require('http');
 const next = require('next');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
+const log = require('electron-log');
+
+// Setup logging
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+log.info('App starting...');
 
 let pythonProcess;
 
 function createWindow(url) {
-  console.log(`Creating window with URL: ${url}`);
+  log.info(`Creating window with URL: ${url}`);
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -39,11 +46,11 @@ function waitForNextJsServer(port = 3000) {
         const response = await fetch(`http://localhost:${port}`);
         if (response.ok) {
           clearInterval(interval);
-          console.log(`Next.js server is ready at http://localhost:${port}.`);
+          log.info(`Next.js server is ready at http://localhost:${port}.`);
           resolve(`http://localhost:${port}`);
         }
       } catch (error) {
-        console.log(`Waiting for Next.js server on port ${port}...`);
+        log.info(`Waiting for Next.js server on port ${port}...`);
       }
     }, 1000);
   });
@@ -51,7 +58,7 @@ function waitForNextJsServer(port = 3000) {
 
 function killPort(port) {
   try {
-    console.log(`Killing process on port ${port}...`);
+    log.info(`Killing process on port ${port}...`);
     const platform = process.platform;
     let command;
 
@@ -68,26 +75,26 @@ function killPort(port) {
       }
     }
 
-    console.log(`Killed process on port ${port}.`);
+    log.info(`Killed process on port ${port}.`);
   } catch (err) {
-    console.error(`Failed to kill process on port ${port}: ${err.message}`);
+    log.error(`Failed to kill process on port ${port}: ${err.message}`);
   }
 }
 
 app.whenReady().then(async () => {
   const nextConfigPath = path.join(process.resourcesPath, 'next.config.mjs');
-  console.log(`Next config path: ${nextConfigPath}`);
+  log.info(`Next config path: ${nextConfigPath}`);
   if (!fs.existsSync(nextConfigPath)) {
-    console.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
+    log.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
     app.quit();
     return;
   }
 
   const nextAppPath = path.join(app.getAppPath(), '.next');
-  console.log(`Next.js path: ${nextAppPath}`);
+  log.info(`Next.js path: ${nextAppPath}`);
 
   if (process.env.NODE_ENV === 'production' && !fs.existsSync(nextAppPath)) {
-    console.error('Next.js build files are missing. Please ensure that .next folder is included in the package.');
+    log.error('Next.js build files are missing. Please ensure that .next folder is included in the package.');
     app.quit();
     return;
   }
@@ -102,7 +109,7 @@ app.whenReady().then(async () => {
 
   server.listen(3000, (err) => {
     if (err) throw err;
-    console.log('> Ready on http://localhost:3000');
+    log.info('> Ready on http://localhost:3000');
   });
 
   const appPath = process.resourcesPath || app.getAppPath();
@@ -110,18 +117,18 @@ app.whenReady().then(async () => {
     ? path.join(appPath, 'env', 'Scripts', 'python.exe') 
     : path.join(appPath, 'env', 'bin', 'python3'); 
 
-  console.log(`Python path: ${pythonPath}`);
+  log.info(`Python path: ${pythonPath}`);
   const serverScriptPath = path.join(appPath, 'backend', 'server.py');
-  console.log(`Server script path: ${serverScriptPath}`);
+  log.info(`Server script path: ${serverScriptPath}`);
 
   if (!fs.existsSync(pythonPath)) {
-    console.error('Python executable not found:', pythonPath);
+    log.error('Python executable not found:', pythonPath);
     app.quit();
     return;
   }
-  
+ 
   if (!fs.existsSync(serverScriptPath)) {
-    console.error('Server script not found:', serverScriptPath);
+    log.error('Server script not found:', serverScriptPath);
     app.quit();
     return;
   }
@@ -133,7 +140,7 @@ app.whenReady().then(async () => {
   const activateCommand = process.platform === 'win32' 
     ? `${path.join(appPath, 'env', 'Scripts', 'activate')}`
     : `source ${path.join(appPath, 'env', 'bin', 'activate')}`;
-  
+ 
   const activateScript = process.platform === 'win32' 
     ? `cmd.exe /c ${activateCommand} && ${pythonPath} ${serverScriptPath}`
     : `bash -c "${activateCommand} && exec ${pythonPath} ${serverScriptPath}"`;
@@ -141,15 +148,15 @@ app.whenReady().then(async () => {
   pythonProcess = spawn(activateScript, [], { shell: true });
 
   pythonProcess.stdout.on('data', (data) => {
-    console.log(`stdout: ${data}`);
+    log.info(`stdout: ${data}`);
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
+    log.error(`stderr: ${data}`);
   });
 
   pythonProcess.on('close', (code) => {
-    console.log(`Python server exited with code ${code}`);
+    log.info(`Python server exited with code ${code}`);
   });
 
   const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
@@ -158,6 +165,9 @@ app.whenReady().then(async () => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
   });
+
+  // Check for updates after the window is created
+  autoUpdater.checkForUpdatesAndNotify();
 });
 
 app.on('window-all-closed', function () {
@@ -165,4 +175,14 @@ app.on('window-all-closed', function () {
     pythonProcess.kill();
   }
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Event handlers for the updater
+autoUpdater.on('update-available', () => {
+  log.info('Update available.');
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  log.info('Update downloaded');
+  autoUpdater.quitAndInstall();
 });

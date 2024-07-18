@@ -14,6 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "autoprefixer": "^10.4.19",
+    "electron-log": "^5.1.6",
+    "electron-updater": "^6.2.1",
     "next": "latest",
     "postcss": "^8.4.39",
     "react": "latest",
@@ -62,6 +64,11 @@
     },
     "mac": {
       "identity": null
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "zsimonAP",
+      "repo": "asp-app"
     }
   }
 }
