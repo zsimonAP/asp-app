@@ -28,7 +28,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Install dmg-license (macOS only)
+      - name: Install macOS dependencies
         if: runner.os == 'macOS'
         run: npm install dmg-license --save-dev
 
