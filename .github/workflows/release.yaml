@@ -98,7 +98,7 @@ jobs:
 
       - name: Remove Quarantine Attribute
         run: |
-          xattr -dr com.apple.quarantine dist/mac/associated-pension-automation-hub-*.dmg
+          xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
 
       - name: Debug environment variables
         run: printenv
