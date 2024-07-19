@@ -56,10 +56,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run electron:build -- --win
 
-      - name: Debug environment variables
-        run: printenv
-
-      - name: List dist directory
+      - name: List dist directory after Windows build
         run: ls -alh dist
 
       - name: Upload Release Assets (Windows)
@@ -100,10 +97,7 @@ jobs:
         run: |
           xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
 
-      - name: Debug environment variables
-        run: printenv
-
-      - name: List dist directory
+      - name: List dist directory after macOS build
         run: ls -alh dist
 
       - name: Upload Release Assets (macOS)
