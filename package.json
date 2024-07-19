@@ -67,6 +67,8 @@
     },
     "mac": {
       "identity": null,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
       "target": ["dmg", "zip"]
     },
     "win": {
