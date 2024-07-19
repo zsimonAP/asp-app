@@ -94,12 +94,11 @@ jobs:
       - name: Package Electron app for macOS
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          npm run electron:build -- --mac --universal
-          cp -r env dist/mac-universal/associated-pension-automation-hub.app/Contents/Resources/env
+        run: npm run electron:build -- --mac
 
       - name: Remove Quarantine Attribute
-        run: xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
+        run: |
+          xattr -dr com.apple.quarantine dist/mac/associated-pension-automation-hub-*.dmg
 
       - name: Debug environment variables
         run: printenv
