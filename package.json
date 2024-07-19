@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.0",
+  "version": "1.0.23",
   "description": "Associated Pension Automation Hub with Next.js and Electron",
   "main": "main.js",
   "scripts": {
