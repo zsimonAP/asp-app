@@ -72,45 +72,47 @@ jobs:
           asset_name: associated-pension-automation-hub-1.0.0-win.zip
           asset_content_type: application/zip
 
-  release_macos:
-    needs: create_release
-    runs-on: macos-latest
+release_macos:
+  needs: create_release
+  runs-on: macos-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+  steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18.17.0'
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '18.17.0'
 
-      - name: Install dependencies
-        run: npm install
+    - name: Install dependencies
+      run: npm install
 
-      - name: Build Electron app
-        run: npm run build
+    - name: Build Electron app
+      run: npm run build
 
-      - name: Package Electron app for macOS
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run electron:build -- --mac --universal
+    - name: Package Electron app for macOS
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      run: |
+        npm run electron:build -- --mac --universal
+        cp -r env dist/mac-universal/associated-pension-automation-hub.app/Contents/Resources/env
 
-      - name: Remove Quarantine Attribute
-        run: xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
+    - name: Remove Quarantine Attribute
+      run: xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
 
-      - name: Debug environment variables
-        run: printenv
+    - name: Debug environment variables
+      run: printenv
 
-      - name: List dist directory
-        run: ls -alh dist
+    - name: List dist directory
+      run: ls -alh dist
 
-      - name: Upload Release Assets (macOS)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.0-arm64-mac.zip
-          asset_name: associated-pension-automation-hub-1.0.0-arm64-mac.zip
-          asset_content_type: application/zip
+    - name: Upload Release Assets (macOS)
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: dist/associated-pension-automation-hub-1.0.0-arm64-mac.zip
+        asset_name: associated-pension-automation-hub-1.0.0-arm64-mac.zip
+        asset_content_type: application/zip

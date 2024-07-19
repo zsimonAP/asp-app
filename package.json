@@ -47,15 +47,15 @@
     "extraResources": [
       {
         "from": "env/",
-        "to": "env/"
+        "to": "Resources/env/"
       },
       {
         "from": "backend/",
-        "to": "backend/"
+        "to": "Resources/backend/"
       },
       {
         "from": "next.config.mjs",
-        "to": "next.config.mjs"
+        "to": "Resources/next.config.mjs"
       }
     ],
     "asarUnpack": [
