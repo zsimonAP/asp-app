@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.1",
+  "version": "1.0.23",
   "description": "Associated Pension Automation Hub with Next.js and Electron",
   "main": "main.js",
   "scripts": {
@@ -8,8 +8,7 @@
     "build": "next build",
     "dev": "next dev",
     "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "next build && electron-builder",
-    "postinstall": "node remove-quarantine.js"
+    "electron:build": "next build && electron-builder"
   },
   "author": "Zachary Simon",
   "license": "MIT",
@@ -86,4 +85,3 @@
     }
   }
 }
-
