@@ -84,7 +84,7 @@ function killPort(port) {
 app.whenReady().then(async () => {
   const nextConfigPath = path.join(process.resourcesPath, 'next.config.mjs');
   log.info(`Next config path: ${nextConfigPath}`);
-  if (!fs.existsSync(nextConfigPath)) {
+  if (!fs.exists(nextConfigPath)) {
     log.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
     app.quit();
     return;
@@ -167,7 +167,32 @@ app.whenReady().then(async () => {
   });
 
   // Check for updates after the window is created
+  log.info('Checking for updates...');
   autoUpdater.checkForUpdatesAndNotify();
+
+  // Event handlers for the updater
+  autoUpdater.on('update-available', () => {
+    log.info('Update available.');
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    log.info('No update available.');
+  });
+
+  autoUpdater.on('error', (err) => {
+    log.error(`Error in auto-updater: ${err.message}`);
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    let logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}% (${progressObj.transferred}/${progressObj.total})`;
+    log.info(logMessage);
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded');
+    autoUpdater.quitAndInstall();
+  });
+
 });
 
 app.on('window-all-closed', function () {
@@ -175,14 +200,4 @@ app.on('window-all-closed', function () {
     pythonProcess.kill();
   }
   if (process.platform !== 'darwin') app.quit();
-});
-
-// Event handlers for the updater
-autoUpdater.on('update-available', () => {
-  log.info('Update available.');
-});
-
-autoUpdater.on('update-downloaded', (info) => {
-  log.info('Update downloaded');
-  autoUpdater.quitAndInstall();
 });
