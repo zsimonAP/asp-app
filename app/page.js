@@ -16,12 +16,9 @@ export default function Home() {
   useEffect(() => {
     const fetchScripts = async () => {
       try {
-        console.log("Fetching scripts from Flask server...");
         const response = await axios.get('http://localhost:5001/list-scripts');
-        console.log("Scripts fetched successfully:", response.data.scripts);
         setScripts(response.data.scripts);
       } catch (err) {
-        console.error("Failed to fetch scripts:", err);
         setError('Failed to fetch scripts: ' + err.message);
       }
     };
@@ -29,12 +26,9 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
-        console.log("Fetching WebSocket port from Flask server...");
         const response = await axios.get('http://localhost:5001/get-websocket-port');
-        console.log("WebSocket port fetched successfully:", response.data.port);
         setWebsocketPort(response.data.port);
       } catch (err) {
-        console.error("Failed to fetch WebSocket port:", err);
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
@@ -49,18 +43,14 @@ export default function Home() {
 
   const runScript = (script) => {
     setSelectedScript(script);
-    console.log(`Connecting to WebSocket server on port ${websocketPort}...`);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
     ws.onopen = () => {
-      console.log("WebSocket connection opened. Sending script name...");
       ws.send(script);
     };
     ws.onmessage = (event) => {
-      console.log("Received message from WebSocket:", event.data);
       if (event.data === "WAIT_FOR_INPUT") {
         setShowUrlInput(true);
       } else if (event.data === "SCRIPT_COMPLETED") {
-        // Reset state when script is done
         setShowUrlInput(false);
         setOutput('');
         setUrl('');
@@ -71,21 +61,23 @@ export default function Home() {
       }
     };
     ws.onerror = (event) => {
-      console.error("WebSocket error:", event);
       setError('WebSocket error: ' + (event.message || 'Unknown error'));
     };
     setWebsocket(ws);
   };
 
   return (
-    <div className="container mx-auto p-6 bg-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-blue-700">Python Automation Runner</h1>
+    <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
+      <div className="text-center text-white">
+        <h1 className="text-3xl font-bold mb-6">Associated Pension Automation Hub</h1>
+        <p className="text-xl mb-4">Automate and run your Python scripts with ease.</p>
+      </div>
       {scripts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {scripts.map((script) => (
             <button
               key={script}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md"
+              className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
               onClick={() => runScript(script)}
             >
               Run {script}
@@ -93,7 +85,7 @@ export default function Home() {
           ))}
         </div>
       ) : (
-        <p className="text-gray-600">No scripts found.</p>
+        <p className="text-gray-200">No scripts found.</p>
       )}
       {showUrlInput && (
         <div className="mt-6 flex">
