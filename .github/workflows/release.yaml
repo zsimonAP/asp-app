@@ -68,8 +68,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.1-win.zip
-          asset_name: associated-pension-automation-hub-1.0.1-win.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.23-win.zip
+          asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
 
   release_macos:
@@ -98,7 +98,7 @@ jobs:
 
       - name: Remove Quarantine Attribute
         run: |
-          xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-1.0.1-arm64.dmg
+          xattr -dr com.apple.quarantine dist/associated-pension-automation-hub-*.dmg
 
       - name: Debug environment variables
         run: printenv
@@ -112,8 +112,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.1-arm64.dmg
-          asset_name: associated-pension-automation-hub-1.0.1-arm64.dmg
+          asset_path: dist/associated-pension-automation-hub-1.0.23-arm64.dmg
+          asset_name: associated-pension-automation-hub-1.0.23-arm64.dmg
           asset_content_type: application/x-apple-diskimage
 
       - name: Upload Release Assets (macOS ZIP)
@@ -122,6 +122,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.1-arm64-mac.zip
-          asset_name: associated-pension-automation-hub-1.0.1-arm64-mac.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.23-arm64-mac.zip
+          asset_name: associated-pension-automation-hub-1.0.23-arm64-mac.zip
           asset_content_type: application/zip
