@@ -68,8 +68,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.0-win.zip
-          asset_name: associated-pension-automation-hub-1.0.0-win.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.23-win.zip
+          asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
 
   release_macos:
@@ -106,12 +106,22 @@ jobs:
       - name: List dist directory
         run: ls -alh dist
 
-      - name: Upload Release Assets (macOS)
+      - name: Upload Release Assets (macOS DMG)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/associated-pension-automation-hub-1.0.0-arm64-mac.zip
-          asset_name: associated-pension-automation-hub-1.0.0-arm64-mac.zip
+          asset_path: dist/associated-pension-automation-hub-1.0.23-arm64.dmg
+          asset_name: associated-pension-automation-hub-1.0.23-arm64.dmg
+          asset_content_type: application/x-apple-diskimage
+
+      - name: Upload Release Assets (macOS ZIP)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/associated-pension-automation-hub-1.0.23-arm64-mac.zip
+          asset_name: associated-pension-automation-hub-1.0.23-arm64-mac.zip
           asset_content_type: application/zip
