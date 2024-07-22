@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-const appPath = path.join(process.resourcesPath, 'associated-pension-automation-hub.app');
+const appPath = path.resolve(__dirname, 'associated-pension-automation-hub.app');
 
 try {
   execSync(`xattr -dr com.apple.quarantine "${appPath}"`);
