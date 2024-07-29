@@ -114,20 +114,20 @@ app.whenReady().then(async () => {
 
   const appPath = process.resourcesPath || app.getAppPath();
   const pythonPath = process.platform === 'win32' 
-    ? path.join(appPath, 'env', 'Scripts', 'python.exe') 
+    ? path.join(appPath, 'env_win', 'Scripts', 'python.exe') 
     : path.join(appPath, 'env', 'bin', 'python3'); 
 
   log.info(`Python path: ${pythonPath}`);
   const serverScriptPath = path.join(appPath, 'backend', 'server.py');
   log.info(`Server script path: ${serverScriptPath}`);
 
-  if (!fs.existsSync(pythonPath)) {
+  if (!fs.exists(pythonPath)) {
     log.error('Python executable not found:', pythonPath);
     app.quit();
     return;
   }
  
-  if (!fs.existsSync(serverScriptPath)) {
+  if (!fs.exists(serverScriptPath)) {
     log.error('Server script not found:', serverScriptPath);
     app.quit();
     return;
@@ -138,7 +138,7 @@ app.whenReady().then(async () => {
 
   // Activate the virtual environment and start the Python server
   const activateCommand = process.platform === 'win32' 
-    ? `${path.join(appPath, 'env', 'Scripts', 'activate')}`
+    ? `${path.join(appPath, 'env_win', 'Scripts', 'activate')}`
     : `source ${path.join(appPath, 'env', 'bin', 'activate')}`;
  
   const activateScript = process.platform === 'win32' 

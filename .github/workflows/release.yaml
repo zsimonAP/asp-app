@@ -28,7 +28,7 @@ jobs:
 
   release_windows:
     needs: create_release
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
@@ -39,14 +39,20 @@ jobs:
         with:
           node-version: '18.17.0'
 
-      - name: Install Wine
-        run: |
-          sudo dpkg --add-architecture i386
-          sudo apt update
-          sudo apt install -y wine64 wine32
-
       - name: Install dependencies
         run: npm install
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Create Python Virtual Environment
+        run: python -m venv env_win
+
+      - name: Install Python dependencies
+        run: |
+          env_win\Scripts\pip install -r requirements.txt
 
       - name: Build Electron app
         run: npm run build
@@ -71,7 +77,7 @@ jobs:
           asset_path: dist/associated-pension-automation-hub-1.0.23-win.zip
           asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
-
+          
   release_macos:
     needs: create_release
     runs-on: macos-latest
