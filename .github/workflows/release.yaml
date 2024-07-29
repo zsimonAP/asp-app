@@ -89,7 +89,6 @@ jobs:
           asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
 
-
   release_macos:
     needs: create_release
     runs-on: macos-latest
@@ -105,6 +104,24 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Create Python Virtual Environment
+        run: python3 -m venv env
+
+      - name: Install Python dependencies
+        run: env/bin/pip install -r requirements.txt
+
+      - name: Debug Python environment
+        run: |
+          echo "Python executable path:"
+          which python3
+          echo "Python environment directory contents:"
+          ls -alh env
 
       - name: Build Electron app
         run: npm run build
