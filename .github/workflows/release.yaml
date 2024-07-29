@@ -60,10 +60,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          if [ ! -d "env" ]; then
-            echo "Python virtual environment not found!"
+          if (-Not (Test-Path -Path "env" -PathType Container)) {
+            Write-Error "Python virtual environment not found!"
             exit 1
-          fi
+          }
           npm run electron:build -- --win
 
       - name: Debug environment variables
@@ -81,8 +81,7 @@ jobs:
           asset_path: dist\associated-pension-automation-hub-1.0.23-win.zip
           asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
-
-
+          
   release_macos:
     needs: create_release
     runs-on: macos-latest
