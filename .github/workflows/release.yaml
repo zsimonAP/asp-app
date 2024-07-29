@@ -48,10 +48,10 @@ jobs:
           python-version: '3.x'
 
       - name: Create Python Virtual Environment
-        run: python -m venv env_win
+        run: python -m venv env
 
       - name: Install Python dependencies
-        run: env_win\Scripts\pip install -r requirements.txt
+        run: env\Scripts\pip install -r requirements.txt
 
       - name: Build Electron app
         run: npm run build
@@ -59,7 +59,12 @@ jobs:
       - name: Package Electron app for Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run electron:build -- --win
+        run: |
+          if [ ! -d "env" ]; then
+            echo "Python virtual environment not found!"
+            exit 1
+          fi
+          npm run electron:build -- --win
 
       - name: Debug environment variables
         run: printenv
@@ -76,6 +81,7 @@ jobs:
           asset_path: dist\associated-pension-automation-hub-1.0.23-win.zip
           asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
+
 
   release_macos:
     needs: create_release
