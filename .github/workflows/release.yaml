@@ -53,6 +53,13 @@ jobs:
       - name: Install Python dependencies
         run: env\Scripts\pip install -r requirements.txt
 
+      - name: Debug Python environment
+        run: |
+          echo "Python executable path:"
+          Get-Command env\Scripts\python.exe
+          echo "Python environment directory contents:"
+          Get-ChildItem env
+
       - name: Build Electron app
         run: npm run build
 
@@ -81,7 +88,8 @@ jobs:
           asset_path: dist\associated-pension-automation-hub-1.0.23-win.zip
           asset_name: associated-pension-automation-hub-1.0.23-win.zip
           asset_content_type: application/zip
-          
+
+
   release_macos:
     needs: create_release
     runs-on: macos-latest
