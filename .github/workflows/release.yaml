@@ -77,7 +77,7 @@ jobs:
         run: printenv
 
       - name: List dist directory
-        run: ls -alh dist
+        run: Get-ChildItem -Path dist
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
