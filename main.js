@@ -68,8 +68,12 @@ function killPort(port) {
     const platform = process.platform;
 
     if (platform === 'win32') {
-      const scriptPath = path.join(app.getAppPath(), 'kill_port_5001.bat');
-      execSync(`cmd.exe /c .\\kill_port_5001.bat`, { cwd: path.dirname(scriptPath) });
+      const command = `netstat -ano | findstr :${port}`;
+      const result = execSync(command).toString().trim();
+      const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
+      if (pid) {
+        execSync(`taskkill /PID ${pid} /F`);
+      }
     } else {
       const command = `lsof -ti:${port}`;
       const processOutput = execSync(command).toString().trim();
@@ -125,19 +129,10 @@ app.whenReady().then(async () => {
   });
 
   log.info(`App path: ${app.getAppPath()}`);
-  const pythonPath = process.platform === 'win32' 
-    ? path.join(app.getAppPath(), 'env', 'Scripts', 'python.exe') 
-    : path.join(app.getAppPath(), 'env', 'bin', 'python3'); 
-
+  const pythonPath = path.join(app.getAppPath(), 'env', 'Scripts', 'python.exe'); // Specify the path to the virtual environment's Python executable
   log.info(`Python path: ${pythonPath}`);
   const serverScriptPath = path.join(app.getAppPath(), 'backend', 'server.py');
   log.info(`Server script path: ${serverScriptPath}`);
-
-  if (!fs.existsSync(pythonPath)) {
-    log.error(`Python executable not found: ${pythonPath}`);
-    app.quit();
-    return;
-  }
 
   if (!fs.existsSync(serverScriptPath)) {
     log.error(`Server script not found: ${serverScriptPath}`);
@@ -149,23 +144,27 @@ app.whenReady().then(async () => {
   killPort(5001);
 
   // Directly run the Python script using the virtual environment's Python executable
-  pythonProcess = spawn(pythonPath, [serverScriptPath], { shell: true });
+  try {
+    pythonProcess = spawn(pythonPath, [serverScriptPath], { shell: true });
 
-  pythonProcess.stdout.on('data', (data) => {
-    log.info(`Python stdout: ${data}`);
-  });
+    pythonProcess.stdout.on('data', (data) => {
+      log.info(`Python stdout: ${data}`);
+    });
 
-  pythonProcess.stderr.on('data', (data) => {
-    log.error(`Python stderr: ${data}`);
-  });
+    pythonProcess.stderr.on('data', (data) => {
+      log.error(`Python stderr: ${data}`);
+    });
 
-  pythonProcess.on('error', (err) => {
-    log.error(`Python process failed to start: ${err.message}`);
-  });
+    pythonProcess.on('error', (err) => {
+      log.error(`Python process failed to start: ${err.message}`);
+    });
 
-  pythonProcess.on('exit', (code, signal) => {
-    log.info(`Python process exited with code ${code} and signal ${signal}`);
-  });
+    pythonProcess.on('exit', (code, signal) => {
+      log.info(`Python process exited with code ${code} and signal ${signal}`);
+    });
+  } catch (error) {
+    log.error(`Failed to start Python process: ${error.message}`);
+  }
 
   try {
     const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
