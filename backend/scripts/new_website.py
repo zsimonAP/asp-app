@@ -1,4 +1,4 @@
-# visit_website.py
+# visit_website_youtube.py
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,13 +7,13 @@ import time
 import sys
 
 def open_website(url):
-    driver = webdriver.Safari()
+    driver = webdriver.Edge()
     driver.get(url)
     return driver
 
 if __name__ == "__main__":
-    google_url = "https://www.youtube.com"
-    driver = open_website(google_url)
+    youtube_url = "https://www.youtube.com"
+    driver = open_website(youtube_url)
     time.sleep(5)
     print("YouTube opened successfully.")
     print("WAIT_FOR_INPUT", flush=True)

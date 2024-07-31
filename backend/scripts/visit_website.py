@@ -1,4 +1,4 @@
-# visit_website.py
+# visit_website_google.py
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -7,7 +7,7 @@ import time
 import sys
 
 def open_website(url):
-    driver = webdriver.Safari()
+    driver = webdriver.Edge()
     driver.get(url)
     return driver
 

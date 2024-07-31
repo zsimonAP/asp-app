@@ -36,11 +36,13 @@ function createWindow(url) {
     if (pythonProcess) {
       pythonProcess.kill();
     }
+    killPort(5001); // Kill tasks on port 5001 when the window is closed
   });
 }
 
-function waitForNextJsServer(port = 3000) {
-  return new Promise((resolve) => {
+async function waitForNextJsServer(port = 3000) {
+  const fetch = (await import('node-fetch')).default;
+  return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
       try {
         const response = await fetch(`http://localhost:${port}`);
@@ -53,6 +55,10 @@ function waitForNextJsServer(port = 3000) {
         log.info(`Waiting for Next.js server on port ${port}...`);
       }
     }, 1000);
+    setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error("Next.js server did not start in time"));
+    }, 30000); // Timeout after 30 seconds
   });
 }
 
@@ -60,15 +66,12 @@ function killPort(port) {
   try {
     log.info(`Killing process on port ${port}...`);
     const platform = process.platform;
-    let command;
 
     if (platform === 'win32') {
-      command = `netstat -ano | findstr :${port}`;
-      const processOutput = execSync(command).toString();
-      const pid = processOutput.split(/\s+/)[4];
-      execSync(`taskkill /PID ${pid} /F`);
+      const scriptPath = path.join(app.getAppPath(), 'kill_port_5001.bat');
+      execSync(`cmd.exe /c .\\kill_port_5001.bat`, { cwd: path.dirname(scriptPath) });
     } else {
-      command = `lsof -ti:${port}`;
+      const command = `lsof -ti:${port}`;
       const processOutput = execSync(command).toString().trim();
       if (processOutput) {
         execSync(`kill -9 ${processOutput}`);
@@ -82,7 +85,7 @@ function killPort(port) {
 }
 
 app.whenReady().then(async () => {
-  const nextConfigPath = path.join(process.resourcesPath, 'next.config.mjs');
+  const nextConfigPath = path.join(app.getAppPath(), 'next.config.mjs');
   log.info(`Next config path: ${nextConfigPath}`);
   if (!fs.existsSync(nextConfigPath)) {
     log.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
@@ -100,35 +103,44 @@ app.whenReady().then(async () => {
   }
 
   const nextApp = next({ dev: false, dir: path.join(app.getAppPath()) });
-  await nextApp.prepare();
-  const nextHandler = nextApp.getRequestHandler();
 
-  const server = createServer((req, res) => {
-    return nextHandler(req, res);
-  });
-
-  server.listen(3000, (err) => {
-    if (err) throw err;
-    log.info('> Ready on http://localhost:3000');
-  });
-
-  const appPath = process.resourcesPath || app.getAppPath();
-  const pythonPath = process.platform === 'win32' 
-    ? path.join(appPath, 'env', 'Scripts', 'python.exe') 
-    : path.join(appPath, 'env', 'bin', 'python3'); 
-
-  log.info(`Python path: ${pythonPath}`);
-  const serverScriptPath = path.join(appPath, 'backend', 'server.py');
-  log.info(`Server script path: ${serverScriptPath}`);
-
-  if (!fs.existsSync(pythonPath)) {
-    log.error('Python executable not found:', pythonPath);
+  try {
+    await nextApp.prepare();
+    log.info('Next.js application prepared successfully.');
+  } catch (error) {
+    log.error('Failed to prepare Next.js application:', error);
     app.quit();
     return;
   }
- 
+
+  const nextHandler = nextApp.getRequestHandler();
+  const server = createServer((req, res) => nextHandler(req, res));
+
+  server.listen(3000, (err) => {
+    if (err) {
+      log.error('Failed to start Next.js server:', err);
+      app.quit();
+    }
+    log.info('> Ready on http://localhost:3000');
+  });
+
+  log.info(`App path: ${app.getAppPath()}`);
+  const pythonPath = process.platform === 'win32' 
+    ? path.join(app.getAppPath(), 'env', 'Scripts', 'python.exe') 
+    : path.join(app.getAppPath(), 'env', 'bin', 'python3'); 
+
+  log.info(`Python path: ${pythonPath}`);
+  const serverScriptPath = path.join(app.getAppPath(), 'backend', 'server.py');
+  log.info(`Server script path: ${serverScriptPath}`);
+
+  if (!fs.existsSync(pythonPath)) {
+    log.error(`Python executable not found: ${pythonPath}`);
+    app.quit();
+    return;
+  }
+
   if (!fs.existsSync(serverScriptPath)) {
-    log.error('Server script not found:', serverScriptPath);
+    log.error(`Server script not found: ${serverScriptPath}`);
     app.quit();
     return;
   }
@@ -136,31 +148,32 @@ app.whenReady().then(async () => {
   // Kill any process using port 5001
   killPort(5001);
 
-  // Activate the virtual environment and start the Python server
-  const activateCommand = process.platform === 'win32' 
-    ? `${path.join(appPath, 'env', 'Scripts', 'activate')}`
-    : `source ${path.join(appPath, 'env', 'bin', 'activate')}`;
- 
-  const activateScript = process.platform === 'win32' 
-    ? `cmd.exe /c ${activateCommand} && ${pythonPath} ${serverScriptPath}`
-    : `bash -c "${activateCommand} && exec ${pythonPath} ${serverScriptPath}"`;
-
-  pythonProcess = spawn(activateScript, [], { shell: true });
+  // Directly run the Python script using the virtual environment's Python executable
+  pythonProcess = spawn(pythonPath, [serverScriptPath], { shell: true });
 
   pythonProcess.stdout.on('data', (data) => {
-    log.info(`stdout: ${data}`);
+    log.info(`Python stdout: ${data}`);
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    log.error(`stderr: ${data}`);
+    log.error(`Python stderr: ${data}`);
   });
 
-  pythonProcess.on('close', (code) => {
-    log.info(`Python server exited with code ${code}`);
+  pythonProcess.on('error', (err) => {
+    log.error(`Python process failed to start: ${err.message}`);
   });
 
-  const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
-  createWindow(startUrl);
+  pythonProcess.on('exit', (code, signal) => {
+    log.info(`Python process exited with code ${code} and signal ${signal}`);
+  });
+
+  try {
+    const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
+    createWindow(startUrl);
+  } catch (error) {
+    log.error(error.message);
+    app.quit();
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
@@ -174,6 +187,7 @@ app.on('window-all-closed', function () {
   if (pythonProcess) {
     pythonProcess.kill();
   }
+  killPort(5001); // Kill tasks on port 5001 when all windows are closed
   if (process.platform !== 'darwin') app.quit();
 });
 
