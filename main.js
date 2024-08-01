@@ -13,6 +13,7 @@ autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
 
 let pythonProcess;
+let nextServer;
 
 function createWindow(url) {
   log.info(`Creating window with URL: ${url}`);
@@ -36,7 +37,10 @@ function createWindow(url) {
     if (pythonProcess) {
       pythonProcess.kill();
     }
-    killPort(5001); // Kill tasks on port 5001 when the window is closed
+    const flaskPort = getFlaskPort();
+    if (flaskPort) {
+      killPort(flaskPort); // Kill tasks on the Flask port when the window is closed
+    }
   });
 }
 
@@ -64,16 +68,20 @@ async function waitForNextJsServer(port = 3000) {
 
 function killPort(port) {
   try {
-    log.info(`Killing process on port ${port}...`);
+    log.info(`Killing processes on port ${port}...`);
     const platform = process.platform;
 
     if (platform === 'win32') {
       const command = `netstat -ano | findstr :${port}`;
       const result = execSync(command).toString().trim();
-      const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
-      if (pid) {
-        execSync(`taskkill /PID ${pid} /F`);
-      }
+      const lines = result.split('\n');
+      lines.forEach(line => {
+        const parts = line.trim().split(/\s+/);
+        const pid = parts[parts.length - 1];
+        if (pid !== '0') {
+          execSync(`taskkill /PID ${pid} /F`);
+        }
+      });
     } else {
       const command = `lsof -ti:${port}`;
       const processOutput = execSync(command).toString().trim();
@@ -82,9 +90,25 @@ function killPort(port) {
       }
     }
 
-    log.info(`Killed process on port ${port}.`);
+    log.info(`Killed processes on port ${port}.`);
   } catch (err) {
-    log.error(`Failed to kill process on port ${port}: ${err.message}`);
+    log.error(`Failed to kill processes on port ${port}: ${err.message}`);
+  }
+}
+
+function getFlaskPort() {
+  const flaskConfigPath = path.join(app.getAppPath(), 'backend', 'flask_server_port.json');
+  try {
+    if (fs.existsSync(flaskConfigPath)) {
+      const config = JSON.parse(fs.readFileSync(flaskConfigPath, 'utf8'));
+      return config.port;
+    } else {
+      log.error('Flask server port config file not found.');
+      return null;
+    }
+  } catch (error) {
+    log.error(`Failed to read Flask server port: ${error.message}`);
+    return null;
   }
 }
 
@@ -118,9 +142,9 @@ app.whenReady().then(async () => {
   }
 
   const nextHandler = nextApp.getRequestHandler();
-  const server = createServer((req, res) => nextHandler(req, res));
+  nextServer = createServer((req, res) => nextHandler(req, res));
 
-  server.listen(3000, (err) => {
+  nextServer.listen(3000, (err) => {
     if (err) {
       log.error('Failed to start Next.js server:', err);
       app.quit();
@@ -140,8 +164,10 @@ app.whenReady().then(async () => {
     return;
   }
 
-  // Kill any process using port 5001
-  killPort(5001);
+  const flaskPort = getFlaskPort();
+  if (flaskPort) {
+    killPort(flaskPort);
+  }
 
   // Directly run the Python script using the virtual environment's Python executable
   try {
@@ -186,7 +212,13 @@ app.on('window-all-closed', function () {
   if (pythonProcess) {
     pythonProcess.kill();
   }
-  killPort(5001); // Kill tasks on port 5001 when all windows are closed
+  const flaskPort = getFlaskPort();
+  if (flaskPort) {
+    killPort(flaskPort); // Kill tasks on the Flask port when all windows are closed
+  }
+  if (nextServer) {
+    nextServer.close();
+  }
   if (process.platform !== 'darwin') app.quit();
 });
 
