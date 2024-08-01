@@ -41,6 +41,14 @@ def get_websocket_port():
         logging.error(f"Error getting WebSocket port: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/shutdown', methods=['POST'])
+def shutdown():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+    return 'Server shutting down...', 200
+
 async def handler(websocket, path):
     try:
         script_name = await websocket.recv()

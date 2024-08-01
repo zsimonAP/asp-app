@@ -15,7 +15,6 @@ log.info('App starting...');
 let pythonProcess;
 
 function createWindow(url) {
-  log.info(`Creating window with URL: ${url}`);
   const win = new BrowserWindow({
     width: 800,
     height: 600,
@@ -32,12 +31,23 @@ function createWindow(url) {
   win.webContents.openDevTools();
 
   // Handle window close
-  win.on('closed', () => {
+  win.on('closed', async () => {
     if (pythonProcess) {
       pythonProcess.kill();
     }
+    await shutdownFlaskServer(); // Shutdown Flask server
     killPort(5001); // Kill tasks on port 5001 when the window is closed
   });
+}
+
+async function shutdownFlaskServer() {
+  try {
+    const fetch = (await import('node-fetch')).default;
+    await fetch('http://localhost:5001/shutdown', { method: 'POST' });
+    log.info('Flask server shutdown initiated.');
+  } catch (error) {
+    log.error(`Failed to shutdown Flask server: ${error.message}`);
+  }
 }
 
 async function waitForNextJsServer(port = 3000) {
@@ -48,7 +58,6 @@ async function waitForNextJsServer(port = 3000) {
         const response = await fetch(`http://localhost:${port}`);
         if (response.ok) {
           clearInterval(interval);
-          log.info(`Next.js server is ready at http://localhost:${port}.`);
           resolve(`http://localhost:${port}`);
         }
       } catch (error) {
@@ -70,9 +79,11 @@ function killPort(port) {
     if (platform === 'win32') {
       const command = `netstat -ano | findstr :${port}`;
       const result = execSync(command).toString().trim();
-      const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
-      if (pid) {
-        execSync(`taskkill /PID ${pid} /F`);
+      if (result) {
+        const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
+        if (pid) {
+          execSync(`taskkill /PID ${pid} /F`);
+        }
       }
     } else {
       const command = `lsof -ti:${port}`;
@@ -90,7 +101,6 @@ function killPort(port) {
 
 async function startApp() {
   const nextConfigPath = path.join(app.getAppPath(), 'next.config.mjs');
-  log.info(`Next config path: ${nextConfigPath}`);
   if (!fs.existsSync(nextConfigPath)) {
     log.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
     app.quit();
@@ -98,7 +108,6 @@ async function startApp() {
   }
 
   const nextAppPath = path.join(app.getAppPath(), '.next');
-  log.info(`Next.js path: ${nextAppPath}`);
 
   if (process.env.NODE_ENV === 'production' && !fs.existsSync(nextAppPath)) {
     log.error('Next.js build files are missing. Please ensure that .next folder is included in the package.');
@@ -139,9 +148,6 @@ async function startApp() {
     app.quit();
     return;
   }
-
-  // Kill any process using port 5001
-  killPort(5001);
 
   // Directly run the Python script using the virtual environment's Python executable
   try {
@@ -185,10 +191,11 @@ async function startApp() {
 
 app.whenReady().then(startApp);
 
-app.on('window-all-closed', function () {
+app.on('window-all-closed', async function () {
   if (pythonProcess) {
     pythonProcess.kill();
   }
+  await shutdownFlaskServer(); // Shutdown Flask server
   killPort(5001); // Kill tasks on port 5001 when all windows are closed
   if (process.platform !== 'darwin') app.quit();
 });
