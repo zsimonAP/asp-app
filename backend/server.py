@@ -1,14 +1,12 @@
 import asyncio
 import json
 import os
-import signal
 import subprocess
 import threading
 import websockets
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import logging
-import socket
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,14 +16,11 @@ CORS(app)
 
 # Ensure the scripts directory path is correct
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
-WEBSOCKET_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
-FLASK_CONFIG_PATH = os.path.join('asp_app', 'backend', 'flask_server_port.json')
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 # Path to the virtual environment's Python executable
 VENV_PYTHON_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env', 'Scripts', 'python.exe')
 
-websocket_server = None
-websocket_loop = None
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
@@ -39,7 +34,7 @@ def list_scripts():
 @app.route('/get-websocket-port', methods=['GET'])
 def get_websocket_port():
     try:
-        with open(WEBSOCKET_CONFIG_PATH, "r") as file:
+        with open(CONFIG_PATH, "r") as file:
             data = json.load(file)
         return jsonify({"port": data["port"]}), 200
     except Exception as e:
@@ -84,58 +79,26 @@ async def handler(websocket, path):
         logging.error(f"Handler exception: {e}")
         await websocket.send(str(e))
 
-def write_port_to_file(port, path):
-    with open(path, "w") as file:
+def write_port_to_file(port):
+    with open(CONFIG_PATH, "w") as file:
         json.dump({"port": port}, file)
-    logging.info(f"Port {port} written to {path}")
+    logging.info(f"WebSocket port {port} written to {CONFIG_PATH}")
 
 def start_websocket_server():
-    global websocket_server, websocket_loop
     asyncio.set_event_loop(asyncio.new_event_loop())
-    websocket_loop = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop()
     start_server = websockets.serve(handler, "localhost", 0)  # Bind to an available port
-    websocket_server = websocket_loop.run_until_complete(start_server)
-    port = websocket_server.sockets[0].getsockname()[1]  # Get the port number assigned
-    write_port_to_file(port, WEBSOCKET_CONFIG_PATH)
+    server = loop.run_until_complete(start_server)
+    port = server.sockets[0].getsockname()[1]  # Get the port number assigned
+    write_port_to_file(port)
     logging.info(f"WebSocket server started on port {port}")
-    websocket_loop.run_forever()
-
-def find_free_port():
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
-
-def shutdown():
-    logging.info("Shutting down servers...")
-    if websocket_server:
-        websocket_server.close()
-        websocket_loop.stop()
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func:
-        func()
-    logging.info("Servers shut down.")
+    loop.run_forever()
 
 if __name__ == "__main__":
-    def signal_handler(sig, frame):
-        shutdown()
-        exit(0)
-
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-
     # Ensure only one WebSocket server instance
     if threading.active_count() == 1:
         threading.Thread(target=start_websocket_server).start()
-    
-    port = find_free_port()
-    write_port_to_file(port, FLASK_CONFIG_PATH)
-    
     logging.info("Starting Flask server...")
     logging.info(f"Using Python executable: {VENV_PYTHON_PATH}")
     logging.info(f"Scripts directory: {SCRIPTS_DIR}")
-    app.run(debug=True, host='0.0.0.0', port=port)
-
-    # Add a cleanup routine for when the server shuts down
-    signal.signal(signal.SIGINT, lambda signal, frame: shutdown())
-    signal.signal(signal.SIGTERM, lambda signal, frame: shutdown())
+    app.run(debug=True, host='0.0.0.0', port=5001)

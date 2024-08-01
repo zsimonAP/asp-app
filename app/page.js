@@ -12,46 +12,28 @@ export default function Home() {
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
-  const [flaskPort, setFlaskPort] = useState(null);
 
   useEffect(() => {
-    const fetchFlaskPort = async () => {
+    const fetchScripts = async () => {
       try {
-        const response = await axios.get(path.join(app.getAppPath(), 'backend', 'flask_server_port.json'));
-        setFlaskPort(response.data.port);
-      } catch (err) {
-        setError('Failed to fetch Flask server port: ' + err.message);
-      }
-    };
-
-    const fetchScripts = async (port) => {
-      try {
-        const response = await axios.get(`http://localhost:${port}/list-scripts`);
+        const response = await axios.get('http://localhost:5001/list-scripts');
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
     };
+    fetchScripts();
 
-    const fetchWebSocketPort = async (port) => {
+    const fetchWebSocketPort = async () => {
       try {
-        const response = await axios.get(`http://localhost:${port}/get-websocket-port`);
+        const response = await axios.get('http://localhost:5001/get-websocket-port');
         setWebsocketPort(response.data.port);
       } catch (err) {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
-
-    const initialize = async () => {
-      await fetchFlaskPort();
-      if (flaskPort) {
-        await fetchScripts(flaskPort);
-        await fetchWebSocketPort(flaskPort);
-      }
-    };
-
-    initialize();
-  }, [flaskPort]);
+    fetchWebSocketPort();
+  }, []);
 
   const handleUrlSubmit = () => {
     if (!url || !websocket) return;
