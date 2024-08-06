@@ -100,14 +100,8 @@ function killPort(port) {
 }
 
 async function startApp() {
-  const nextConfigPath = path.join(app.getAppPath(), 'next.config.mjs');
-  if (!fs.existsSync(nextConfigPath)) {
-    log.error('Next.js config file is missing. Please ensure that next.config.mjs is included in the package.');
-    app.quit();
-    return;
-  }
-
-  const nextAppPath = path.join(app.getAppPath(), '.next');
+  const nextAppPath = path.join(__dirname, '.next');
+  log.info(`Checking Next.js build files at: ${nextAppPath}`);
 
   if (process.env.NODE_ENV === 'production' && !fs.existsSync(nextAppPath)) {
     log.error('Next.js build files are missing. Please ensure that .next folder is included in the package.');
@@ -115,79 +109,80 @@ async function startApp() {
     return;
   }
 
-  const nextApp = next({ dev: false, dir: path.join(app.getAppPath()) });
-
   try {
+    const nextApp = next({ dev: false, dir: __dirname });
+
     await nextApp.prepare();
     log.info('Next.js application prepared successfully.');
-  } catch (error) {
-    log.error('Failed to prepare Next.js application:', error);
-    app.quit();
-    return;
-  }
 
-  const nextHandler = nextApp.getRequestHandler();
-  const server = createServer((req, res) => nextHandler(req, res));
+    const nextHandler = nextApp.getRequestHandler();
+    const server = createServer((req, res) => nextHandler(req, res));
 
-  server.listen(3000, (err) => {
-    if (err) {
-      log.error('Failed to start Next.js server:', err);
+    server.listen(3000, (err) => {
+      if (err) {
+        log.error('Failed to start Next.js server:', err);
+        app.quit();
+      }
+      log.info('> Ready on http://localhost:3000');
+    });
+
+    log.info(`App path: ${__dirname}`);
+    const pythonPath = path.join(process.resourcesPath, 'env', 'Scripts', 'python.exe');
+    log.info(`Python path: ${pythonPath}`);
+    const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
+    log.info(`Server script path: ${serverScriptPath}`);
+
+    if (!fs.existsSync(pythonPath)) {
+      log.error(`Python executable not found at: ${pythonPath}`);
       app.quit();
+      return;
     }
-    log.info('> Ready on http://localhost:3000');
-  });
 
-  log.info(`App path: ${app.getAppPath()}`);
-  const pythonPath = path.join(app.getAppPath(), 'env', 'Scripts', 'python.exe');
-  log.info(`Python path: ${pythonPath}`);
-  const serverScriptPath = path.join(app.getAppPath(), 'backend', 'server.py');
-  log.info(`Server script path: ${serverScriptPath}`);
+    if (!fs.existsSync(serverScriptPath)) {
+      log.error(`Server script not found: ${serverScriptPath}`);
+      app.quit();
+      return;
+    }
 
-  if (!fs.existsSync(serverScriptPath)) {
-    log.error(`Server script not found: ${serverScriptPath}`);
-    app.quit();
-    return;
-  }
+    try {
+      const command = `"${pythonPath}" "${serverScriptPath}"`;
+      pythonProcess = spawn(command, { shell: true });
 
-  // Directly run the Python script using the virtual environment's Python executable
-  try {
-    const command = `"${pythonPath}" "${serverScriptPath}"`;
-    pythonProcess = spawn(command, { shell: true });
+      pythonProcess.stdout.on('data', (data) => {
+        log.info(`Python stdout: ${data}`);
+      });
 
-    pythonProcess.stdout.on('data', (data) => {
-      log.info(`Python stdout: ${data}`);
-    });
+      pythonProcess.stderr.on('data', (data) => {
+        log.error(`Python stderr: ${data}`);
+      });
 
-    pythonProcess.stderr.on('data', (data) => {
-      log.error(`Python stderr: ${data}`);
-    });
+      pythonProcess.on('error', (err) => {
+        log.error(`Python process failed to start: ${err.message}`);
+      });
 
-    pythonProcess.on('error', (err) => {
-      log.error(`Python process failed to start: ${err.message}`);
-    });
+      pythonProcess.on('exit', (code, signal) => {
+        log.info(`Python process exited with code ${code} and signal ${signal}`);
+      });
 
-    pythonProcess.on('exit', (code, signal) => {
-      log.info(`Python process exited with code ${code} and signal ${signal}`);
-    });
-  } catch (error) {
-    log.error(`Failed to start Python process: ${error.message}`);
-  }
+      log.info(`Python process started successfully`);
+    } catch (error) {
+      log.error(`Failed to start Python process: ${error.message}`);
+    }
 
-  try {
-    const startUrl = await waitForNextJsServer(3000); // Ensure the Next.js server is ready before creating the window
+    const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
+
+    app.on('activate', function () {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
+    });
+
+    autoUpdater.checkForUpdatesAndNotify();
   } catch (error) {
-    log.error(error.message);
+    log.error(`Failed to prepare Next.js application: ${error.message}`);
     app.quit();
   }
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
-  });
-
-  // Check for updates after the window is created
-  autoUpdater.checkForUpdatesAndNotify();
 }
+
 
 app.whenReady().then(startApp);
 

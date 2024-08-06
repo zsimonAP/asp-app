@@ -1,103 +1,82 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.23",
-  "description": "Associated Pension Automation Hub with Next.js and Electron",
+  "version": "1.0.0",
+  "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
-    "start": "next start",
-    "build": "next build",
+    "start": "electron .",
     "dev": "next dev",
-    "electron:dev": "concurrently \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron:build": "next build && electron-builder"
+    "build": "next build",
+    "electron:build": "electron-builder build --win --x64",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "author": "Zachary Simon",
-  "license": "MIT",
   "dependencies": {
-    "autoprefixer": "^10.4.19",
-    "electron-log": "^5.1.6",
-    "electron-updater": "^6.2.1",
-    "next": "^14.2.5",
-    "node-fetch": "^3.3.2",
-    "postcss": "^8.4.39",
-    "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "^3.4.6"
+    "electron-updater": "^5.4.7",
+    "next": "^13.4.7",
+    "node-fetch": "^3.2.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.2.4",
+    "electron-log": "^4.4.6"
   },
   "devDependencies": {
-    "concurrently": "^7.0.0",
-    "electron": "^25.9.8",
-    "electron-builder": "^24.6.0",
-    "electron-packager": "^17.1.2",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^14.2.5",
-    "wait-on": "^6.0.0"
-  },
-  "optionalDependencies": {
-    "dmg-license": "^1.0.11"
+    "electron": "^25.3.0",
+    "electron-builder": "^23.6.0",
+    "eslint": "^8.28.0",
+    "postcss": "^8.4.18"
   },
   "build": {
-    "appId": "com.zacharysimon.associated-pension-automation-hub",
+    "appId": "com.zacharysimon.associatedpensionautomationhub",
+    "productName": "associated-pension-automation-hub",
     "files": [
       "app/**/*",
       "backend/**/*",
+      ".next/**/*",
       "public/**/*",
       "main.js",
       "preload.js",
-      ".next/**/*",
+      "env/**/*",
       "package.json",
-      "next.config.mjs"
+      "node_modules/**/*"
     ],
-    "extraResources": [
+    "directories": {
+      "buildResources": "build"
+    },
+   "extraResources": [
       {
         "from": "env/",
-        "to": "env/"
+        "to": "env",
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "backend/",
-        "to": "backend/"
-      },
-      {
-        "from": "next.config.mjs",
-        "to": "next.config.mjs"
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
-    "asarUnpack": [
-      "**/env/**",
-      "**/backend/**"
-    ],
-    "directories": {
-      "buildResources": "assets"
-    },
-    "mac": {
-      "identity": null,
-      "hardenedRuntime": true,
-      "gatekeeperAssess": false,
-      "target": [
-        "dmg",
-        "zip"
-      ]
-    },
+
     "win": {
       "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        "zip"
-      ]
-    },
-    "linux": {
-      "target": [
-        "zip"
+        "nsis"
       ],
-      "category": "Utility"
+      "icon": "build/icon.ico"
     },
-    "publish": {
-      "provider": "github",
-      "owner": "zsimonAP",
-      "repo": "asp-app"
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
     }
-  }
+  },
+  "keywords": [
+    "electron",
+    "nextjs",
+    "pension",
+    "automation"
+  ],
+  "author": "Zachary Simon",
+  "license": "MIT"
 }
