@@ -60,6 +60,13 @@
         ]
       }
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "zsimonAP",
+        "repo": "asp-app"
+      }
+    ],
     "win": {
       "target": [
         "nsis"
