@@ -28,9 +28,6 @@ function createWindow(url) {
 
   win.loadURL(url);
 
-  // Open the DevTools optionally
-  win.webContents.openDevTools();
-
   // Handle window close
   win.on('closed', async () => {
     if (pythonProcess) {
