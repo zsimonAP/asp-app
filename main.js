@@ -40,9 +40,10 @@ function createWindow(url) {
   });
 }
 
+const fetch = require('node-fetch');
+
 async function shutdownFlaskServer() {
   try {
-    const fetch = (await import('node-fetch')).default;
     await fetch('http://localhost:5001/shutdown', { method: 'POST' });
     log.info('Flask server shutdown initiated.');
   } catch (error) {
@@ -51,7 +52,6 @@ async function shutdownFlaskServer() {
 }
 
 async function waitForNextJsServer(port = 3000) {
-  const fetch = (await import('node-fetch')).default;
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
       try {
@@ -70,6 +70,7 @@ async function waitForNextJsServer(port = 3000) {
     }, 30000); // Timeout after 30 seconds
   });
 }
+
 
 function killPort(port) {
   try {
