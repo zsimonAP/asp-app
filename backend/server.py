@@ -1,12 +1,12 @@
-import asyncio
-import json
 import os
+import logging
+import json
+import asyncio
 import subprocess
 import threading
 import websockets
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,8 +19,7 @@ SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 # Path to the virtual environment's Python executable
-VENV_PYTHON_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env', 'Scripts', 'python.exe')
-
+VENV_PYTHON_PATH = os.getenv('VENV_PYTHON_PATH', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env', 'Scripts', 'python.exe'))
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():

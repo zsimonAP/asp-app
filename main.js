@@ -22,7 +22,7 @@ function createWindow(url) {
     webPreferences: {
       preload: path.join(app.getAppPath(), 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: true, // Ensures security
+      contextIsolation: true // Ensures security
     },
   });
 
@@ -127,7 +127,15 @@ async function startApp() {
 
     log.info(`App path: ${__dirname}`);
 
-    const pythonPath = process.env.PYTHONPATH || path.join(process.resourcesPath, 'env', 'Scripts', 'python.exe');
+    let pythonPath;
+    if (process.env.NODE_ENV === 'production') {
+      // Production path
+      pythonPath = path.join(process.resourcesPath, 'env', 'Scripts', 'python.exe');
+    } else {
+      // Development path
+      pythonPath = path.join(__dirname, 'env', 'Scripts', 'python.exe');
+    }
+
     log.info(`Python path: ${pythonPath}`);
     const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
@@ -145,7 +153,7 @@ async function startApp() {
     }
 
     try {
-      pythonProcess = spawn(pythonPath, [serverScriptPath]);
+      pythonProcess = spawn(pythonPath, [serverScriptPath], { env: { ...process.env, VENV_PYTHON_PATH: pythonPath } });
 
       pythonProcess.stdout.on('data', (data) => {
         log.info(`Python stdout: ${data}`);
