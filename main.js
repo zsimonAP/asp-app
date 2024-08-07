@@ -6,6 +6,7 @@ const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const fetch = require('node-fetch');
 
 // Setup logging
 autoUpdater.logger = log;
@@ -40,8 +41,6 @@ function createWindow(url) {
   });
 }
 
-const fetch = require('node-fetch');
-
 async function shutdownFlaskServer() {
   try {
     await fetch('http://localhost:5001/shutdown', { method: 'POST' });
@@ -70,7 +69,6 @@ async function waitForNextJsServer(port = 3000) {
     }, 30000); // Timeout after 30 seconds
   });
 }
-
 
 function killPort(port) {
   try {
@@ -137,7 +135,7 @@ async function startApp() {
       // Development path
       pythonPath = path.join(__dirname, 'env', 'Scripts', 'python.exe');
     }
-    
+
     log.info(`Python path: ${pythonPath}`);
     const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
@@ -155,8 +153,7 @@ async function startApp() {
     }
 
     try {
-      const command = `"${pythonPath}" "${serverScriptPath}"`;
-      pythonProcess = spawn(command, { shell: true });
+      pythonProcess = spawn(pythonPath, [serverScriptPath]);
 
       pythonProcess.stdout.on('data', (data) => {
         log.info(`Python stdout: ${data}`);
@@ -192,7 +189,6 @@ async function startApp() {
     app.quit();
   }
 }
-
 
 app.whenReady().then(startApp);
 
