@@ -64,7 +64,8 @@
       {
         "provider": "github",
         "owner": "zsimonAP",
-        "repo": "asp-app"
+        "repo": "asp-app",
+        "releaseType": "release"
       }
     ],
     "win": {
