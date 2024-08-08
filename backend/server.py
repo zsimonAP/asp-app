@@ -19,7 +19,10 @@ SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 # Path to the virtual environment's Python executable
-VENV_PYTHON_PATH = os.getenv('VENV_PYTHON_PATH', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'env', 'Scripts', 'python.exe'))
+VENV_PYTHON_PATH = os.getenv('VENV_PYTHON_PATH')
+
+if VENV_PYTHON_PATH is None:
+    raise EnvironmentError("VENV_PYTHON_PATH environment variable is not set")
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():

@@ -151,9 +151,9 @@ async function startApp() {
 
     try {
       // Explicitly set the environment variable for the Python path
-      const env = { ...process.env, VENV_PYTHON_PATH: pythonPath };
+      process.env.VENV_PYTHON_PATH = pythonPath;
 
-      pythonProcess = spawn(pythonPath, [serverScriptPath], { env });
+      pythonProcess = spawn(pythonPath, [serverScriptPath], { env: process.env });
 
       pythonProcess.stdout.on('data', (data) => {
         log.info(`Python stdout: ${data}`);
