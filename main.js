@@ -133,6 +133,9 @@ async function startApp() {
       pythonPath = path.join(__dirname, 'env', 'Scripts', 'python.exe');
     }
 
+    // Override environment variable for the Python path
+    process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
+
     log.info(`Python path: ${pythonPath}`);
     const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
@@ -150,9 +153,6 @@ async function startApp() {
     }
 
     try {
-      // Explicitly set the environment variable for the Python path
-      process.env.VENV_PYTHON_PATH = pythonPath;
-
       pythonProcess = spawn(pythonPath, [serverScriptPath], { env: process.env });
 
       pythonProcess.stdout.on('data', (data) => {
