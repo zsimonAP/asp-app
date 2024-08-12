@@ -147,9 +147,14 @@ async function startApp() {
     process.env.PYTHONNOUSERSITE = '1';
     process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
 
+    // Log all relevant paths and environment variables
     log.info(`Python path: ${pythonPath}`);
     log.info(`Python home: ${pythonHome}`);
     log.info(`Python path environment: ${pythonPathEnv}`);
+    log.info(`Environment PATH: ${process.env.PATH}`);
+    log.info(`Environment PYTHONHOME: ${process.env.PYTHONHOME}`);
+    log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
+    log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
 
     const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
@@ -167,6 +172,9 @@ async function startApp() {
     }
 
     try {
+      log.info('Spawning Python process with the following command:');
+      log.info(`${pythonPath} ${serverScriptPath}`);
+
       pythonProcess = spawn(pythonPath, [serverScriptPath], { env: process.env });
 
       pythonProcess.stdout.on('data', (data) => {
@@ -185,7 +193,7 @@ async function startApp() {
         log.info(`Python process exited with code ${code} and signal ${signal}`);
       });
 
-      log.info(`Python process started successfully`);
+      log.info('Python process started successfully');
     } catch (error) {
       log.error(`Failed to start Python process: ${error.message}`);
     }
@@ -203,7 +211,6 @@ async function startApp() {
     app.quit();
   }
 }
-
 
 app.whenReady().then(startApp);
 

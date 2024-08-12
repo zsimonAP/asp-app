@@ -18,7 +18,7 @@ CORS(app)
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
-# Path to the Python executable (use system's Python from PATH)
+# Path to the Python executable (use the bundled Python in production)
 VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
 
 @app.route('/list-scripts', methods=['GET'])
@@ -56,14 +56,22 @@ async def handler(websocket, path):
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")
 
-        command = [VENV_PYTHON_PATH, script_path]
-        logging.info(f"Executing command: {command}")
+        # Prepare a clean environment for the subprocess
+        env = os.environ.copy()
+        env['PYTHONHOME'] = os.path.join(os.path.dirname(__file__), '..', 'env')
+        env['PYTHONPATH'] = os.path.join(env['PYTHONHOME'], 'Lib', 'site-packages')
+        env['PATH'] = f"{os.path.join(env['PYTHONHOME'], 'Scripts')};{env['PATH']}"
+        env['PYTHONNOUSERSITE'] = '1'
+
+        logging.info(f"Using Python executable: {VENV_PYTHON_PATH}")
+        logging.info(f"Executing command: {[VENV_PYTHON_PATH, script_path]}")
         
-        process = subprocess.Popen(command,
+        process = subprocess.Popen([VENV_PYTHON_PATH, script_path],
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   text=True)
+                                   text=True,
+                                   env=env)
 
         while True:
             output = process.stdout.readline()
