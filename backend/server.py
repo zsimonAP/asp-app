@@ -19,7 +19,7 @@ SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 # Path to the Python executable (use system's Python from PATH)
-VENV_PYTHON_PATH = 'python'
+VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
