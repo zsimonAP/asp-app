@@ -122,7 +122,8 @@ async function startApp() {
       log.info('> Ready on http://localhost:3000');
     });
 
-    log.info(`App path: ${__dirname}`);
+    // Use app.getAppPath() to get the root installation directory
+    const appRootPath = app.getAppPath();
 
     let pythonPath;
     let pythonHome;
@@ -130,12 +131,12 @@ async function startApp() {
 
     if (process.env.NODE_ENV === 'production') {
       // Production paths
-      pythonHome = path.join(process.resourcesPath, 'env');
+      pythonHome = path.join(appRootPath, 'env');
       pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
       pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
     } else {
       // Development paths
-      pythonHome = path.join(__dirname, 'env');
+      pythonHome = path.join(appRootPath, 'env');
       pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
       pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
     }
@@ -156,7 +157,7 @@ async function startApp() {
     log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
     log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
 
-    const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
+    const serverScriptPath = path.join(appRootPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
 
     if (!fs.existsSync(pythonPath)) {
