@@ -125,18 +125,32 @@ async function startApp() {
     log.info(`App path: ${__dirname}`);
 
     let pythonPath;
+    let pythonHome;
+    let pythonPathEnv;
+
     if (process.env.NODE_ENV === 'production') {
-      // Production path
-      pythonPath = path.join(process.resourcesPath, 'env', 'Scripts', 'python.exe');
+      // Production paths
+      pythonHome = path.join(process.resourcesPath, 'env');
+      pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
+      pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
     } else {
-      // Development path
-      pythonPath = path.join(__dirname, 'env', 'Scripts', 'python.exe');
+      // Development paths
+      pythonHome = path.join(__dirname, 'env');
+      pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
+      pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
     }
 
-    // Override environment variable for the Python path
+    // Set environment variables
+    process.env.PYTHONHOME = pythonHome;
+    process.env.PYTHONPATH = pythonPathEnv;
+    process.env.PYTHONEXECUTABLE = pythonPath;
+    process.env.PYTHONNOUSERSITE = '1';
     process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
 
     log.info(`Python path: ${pythonPath}`);
+    log.info(`Python home: ${pythonHome}`);
+    log.info(`Python path environment: ${pythonPathEnv}`);
+
     const serverScriptPath = path.join(process.resourcesPath, 'backend', 'server.py');
     log.info(`Server script path: ${serverScriptPath}`);
 
@@ -189,6 +203,7 @@ async function startApp() {
     app.quit();
   }
 }
+
 
 app.whenReady().then(startApp);
 
