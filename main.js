@@ -122,24 +122,11 @@ async function startApp() {
       log.info('> Ready on http://localhost:3000');
     });
 
-    // Use app.getAppPath() to get the root installation directory
-    const appRootPath = app.getAppPath();
+    const appRootPath = process.resourcesPath; // Points to the resources directory
 
-    let pythonPath;
-    let pythonHome;
-    let pythonPathEnv;
-
-    if (process.env.NODE_ENV === 'production') {
-      // Production paths
-      pythonHome = path.join(appRootPath, 'env');
-      pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
-      pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
-    } else {
-      // Development paths
-      pythonHome = path.join(appRootPath, 'env');
-      pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
-      pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
-    }
+    const pythonHome = path.join(appRootPath, 'env');
+    const pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
+    const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
 
     // Set environment variables
     process.env.PYTHONHOME = pythonHome;
@@ -233,3 +220,4 @@ autoUpdater.on('update-downloaded', (info) => {
   log.info('Update downloaded');
   autoUpdater.quitAndInstall();
 });
+

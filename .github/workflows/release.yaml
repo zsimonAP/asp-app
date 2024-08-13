@@ -104,6 +104,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.67.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.68.exe
           asset_name: associated-pension-automation-hub-1.0.0.exe
           asset_content_type: application/vnd.microsoft.portable-executable
