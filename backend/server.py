@@ -1,4 +1,18 @@
 import os
+import sys
+
+# Explicitly set the Python path and environment variables
+VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
+if not os.path.exists(VENV_PYTHON_PATH):
+    raise RuntimeError(f"Python executable not found at {VENV_PYTHON_PATH}")
+
+sys.executable = VENV_PYTHON_PATH
+
+os.environ['PYTHONHOME'] = os.path.join(os.path.dirname(__file__), '..', 'env')
+os.environ['PYTHONPATH'] = os.path.join(os.environ['PYTHONHOME'], 'Lib', 'site-packages')
+os.environ['PATH'] = f"{os.path.join(os.environ['PYTHONHOME'], 'Scripts')};{os.environ['PATH']}"
+os.environ['PYTHONNOUSERSITE'] = '1'
+
 import logging
 import json
 import asyncio
@@ -18,8 +32,11 @@ CORS(app)
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
-# Path to the Python executable (use the bundled Python in production)
-VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
+# Log environment variables for debugging
+logging.info(f"Using Python executable: {sys.executable}")
+logging.info(f"PYTHONHOME: {os.environ.get('PYTHONHOME')}")
+logging.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
+logging.info(f"PATH: {os.environ.get('PATH')}")
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
