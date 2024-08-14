@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: '3.12.4'  # or the specific version you are using
 
       - name: Create Python Virtual Environment
         run: python -m venv env
@@ -75,6 +75,9 @@ jobs:
       - name: Package Electron app for Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PYTHONHOME: ${{ github.workspace }}\env
+          PYTHONPATH: ${{ github.workspace }}\env\Lib\site-packages
+          PATH: ${{ github.workspace }}\env\Scripts;${{ github.workspace }}\env\Lib\site-packages;${{ github.workspace }}\env\DLLs;${{ env.PATH }}
         run: |
           if (-Not (Test-Path -Path "env" -PathType Container)) {
             Write-Error "Python virtual environment not found!"
@@ -104,6 +107,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.69.exe
-          asset_name: associated-pension-automation-hub-1.0.0.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.70.exe
+          asset_name: associated-pension-automation-hub-1.0.70.exe
           asset_content_type: application/vnd.microsoft.portable-executable
