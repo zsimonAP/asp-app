@@ -220,4 +220,3 @@ autoUpdater.on('update-downloaded', (info) => {
   log.info('Update downloaded');
   autoUpdater.quitAndInstall();
 });
-

@@ -47,8 +47,13 @@ jobs:
         with:
           python-version: '3.12.4'  # or the specific version you are using
 
-      - name: Create Python Virtual Environment
-        run: python -m venv env
+      - name: Check for Python Environment and Activate
+        run: |
+          if (-Not (Test-Path -Path "env\Scripts\python.exe" -PathType Leaf)) {
+            Write-Error "Python executable not found! Make sure the 'env' folder is correctly set up in the repo."
+            exit 1
+          }
+          .\env\Scripts\Activate.ps1
 
       - name: Install Python dependencies
         run: env\Scripts\pip install -r requirements.txt
@@ -107,6 +112,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.70.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.71.exe
           asset_name: associated-pension-automation-hub-1.0.70.exe
           asset_content_type: application/vnd.microsoft.portable-executable

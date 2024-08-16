@@ -33,7 +33,14 @@ export default function Home() {
       }
     };
     fetchWebSocketPort();
-  }, []);
+
+    // Cleanup WebSocket connection on component unmount
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [websocket]);
 
   const handleUrlSubmit = () => {
     if (!url || !websocket) return;
@@ -62,6 +69,11 @@ export default function Home() {
     };
     ws.onerror = (event) => {
       setError('WebSocket error: ' + (event.message || 'Unknown error'));
+    };
+    ws.onclose = (event) => {
+      if (!event.wasClean) {
+        setError('WebSocket closed unexpectedly.');
+      }
     };
     setWebsocket(ws);
   };

@@ -1,5 +1,16 @@
 import os
 import sys
+import logging
+import json
+import asyncio
+import subprocess
+import threading
+import websockets
+from flask import Flask, jsonify, request
+from flask_cors import CORS
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 # Explicitly set the Python path and environment variables
 VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
@@ -13,18 +24,7 @@ os.environ['PYTHONPATH'] = os.path.join(os.environ['PYTHONHOME'], 'Lib', 'site-p
 os.environ['PATH'] = f"{os.path.join(os.environ['PYTHONHOME'], 'Scripts')};{os.environ['PATH']}"
 os.environ['PYTHONNOUSERSITE'] = '1'
 
-import logging
-import json
-import asyncio
-import subprocess
-import threading
-import websockets
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-
+# Flask setup
 app = Flask(__name__)
 CORS(app)
 
