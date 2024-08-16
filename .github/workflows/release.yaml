@@ -42,22 +42,6 @@ jobs:
       - name: Install dependencies
         run: npm ci # Use ci to ensure a clean install without leftovers
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.12.4'  # or the specific version you are using
-
-      - name: Check for Python Environment and Activate
-        run: |
-          if (-Not (Test-Path -Path "env\Scripts\python.exe" -PathType Leaf)) {
-            Write-Error "Python executable not found! Make sure the 'env' folder is correctly set up in the repo."
-            exit 1
-          }
-          .\env\Scripts\Activate.ps1
-
-      - name: Install Python dependencies
-        run: env\Scripts\pip install -r requirements.txt
-
       - name: Clean previous builds
         run: |
           if (Test-Path dist) {
@@ -67,27 +51,13 @@ jobs:
             Remove-Item -Recurse -Force release
           }
 
-      - name: Debug Python environment
-        run: |
-          echo "Python executable path:"
-          Get-Command env\Scripts\python.exe
-          echo "Python environment directory contents:"
-          Get-ChildItem env
-
       - name: Build Electron app
         run: npm run build
 
       - name: Package Electron app for Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          PYTHONHOME: ${{ github.workspace }}\env
-          PYTHONPATH: ${{ github.workspace }}\env\Lib\site-packages
-          PATH: ${{ github.workspace }}\env\Scripts;${{ github.workspace }}\env\Lib\site-packages;${{ github.workspace }}\env\DLLs;${{ env.PATH }}
         run: |
-          if (-Not (Test-Path -Path "env" -PathType Container)) {
-            Write-Error "Python virtual environment not found!"
-            exit 1
-          }
           npm run electron:build -- --win
           
           # Ensure the build was successful and output files exist
@@ -112,6 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.71.exe
-          asset_name: associated-pension-automation-hub-1.0.70.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.72.exe
+          asset_name: associated-pension-automation-hub-1.0.72.exe
           asset_content_type: application/vnd.microsoft.portable-executable

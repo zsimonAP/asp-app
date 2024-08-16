@@ -12,18 +12,6 @@ from flask_cors import CORS
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Explicitly set the Python path and environment variables
-VENV_PYTHON_PATH = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
-if not os.path.exists(VENV_PYTHON_PATH):
-    raise RuntimeError(f"Python executable not found at {VENV_PYTHON_PATH}")
-
-sys.executable = VENV_PYTHON_PATH
-
-os.environ['PYTHONHOME'] = os.path.join(os.path.dirname(__file__), '..', 'env')
-os.environ['PYTHONPATH'] = os.path.join(os.environ['PYTHONHOME'], 'Lib', 'site-packages')
-os.environ['PATH'] = f"{os.path.join(os.environ['PYTHONHOME'], 'Scripts')};{os.environ['PATH']}"
-os.environ['PYTHONNOUSERSITE'] = '1'
-
 # Flask setup
 app = Flask(__name__)
 CORS(app)
@@ -32,11 +20,9 @@ CORS(app)
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
-# Log environment variables for debugging
+# Log paths for debugging
 logging.info(f"Using Python executable: {sys.executable}")
-logging.info(f"PYTHONHOME: {os.environ.get('PYTHONHOME')}")
-logging.info(f"PYTHONPATH: {os.environ.get('PYTHONPATH')}")
-logging.info(f"PATH: {os.environ.get('PATH')}")
+logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
@@ -73,22 +59,13 @@ async def handler(websocket, path):
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")
 
-        # Prepare a clean environment for the subprocess
-        env = os.environ.copy()
-        env['PYTHONHOME'] = os.path.join(os.path.dirname(__file__), '..', 'env')
-        env['PYTHONPATH'] = os.path.join(env['PYTHONHOME'], 'Lib', 'site-packages')
-        env['PATH'] = f"{os.path.join(env['PYTHONHOME'], 'Scripts')};{env['PATH']}"
-        env['PYTHONNOUSERSITE'] = '1'
-
-        logging.info(f"Using Python executable: {VENV_PYTHON_PATH}")
-        logging.info(f"Executing command: {[VENV_PYTHON_PATH, script_path]}")
+        logging.info(f"Executing command: {[sys.executable, script_path]}")
         
-        process = subprocess.Popen([VENV_PYTHON_PATH, script_path],
+        process = subprocess.Popen([sys.executable, script_path],
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   text=True,
-                                   env=env)
+                                   text=True)
 
         while True:
             output = process.stdout.readline()
@@ -131,6 +108,6 @@ if __name__ == "__main__":
     if threading.active_count() == 1:
         threading.Thread(target=start_websocket_server).start()
     logging.info("Starting Flask server...")
-    logging.info(f"Using Python executable: {VENV_PYTHON_PATH}")
+    logging.info(f"Using Python executable: {sys.executable}")
     logging.info(f"Scripts directory: {SCRIPTS_DIR}")
     app.run(debug=True, host='0.0.0.0', port=5001)
