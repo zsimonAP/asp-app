@@ -63,11 +63,9 @@ jobs:
           .\env\Scripts\activate
           pip install -r requirements.txt
 
-      - name: Ensure virtual environment is activated and set Python path
+      - name: Activate virtual environment and set path
         run: |
           .\env\Scripts\activate
-          $env:PYTHONHOME = "${{ github.workspace }}\env"
-          $env:PYTHONPATH = "${{ github.workspace }}\env\Lib\site-packages"
           $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
           python -m pip install --upgrade pip
           python --version
@@ -108,6 +106,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.78.exe
-          asset_name: associated-pension-automation-hub-1.0.78.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.79.exe
+          asset_name: associated-pension-automation-hub-1.0.79.exe
           asset_content_type: application/vnd.microsoft.portable-executable
