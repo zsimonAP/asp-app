@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.72",
+  "version": "1.0.73",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
@@ -75,13 +75,5 @@
       "perMachine": true,
       "allowToChangeInstallationDirectory": true
     }
-  },
-  "keywords": [
-    "electron",
-    "nextjs",
-    "pension",
-    "automation"
-  ],
-  "author": "Zachary Simon",
-  "license": "MIT"
+  }
 }
