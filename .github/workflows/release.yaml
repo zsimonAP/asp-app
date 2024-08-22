@@ -63,7 +63,7 @@ jobs:
           .\env\Scripts\activate
           pip install -r requirements.txt
 
-      - name: Activate virtual environment and set path
+      - name: Ensure virtual environment is activated and set path
         run: |
           .\env\Scripts\activate
           $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
@@ -74,12 +74,15 @@ jobs:
         shell: powershell
 
       - name: Build Electron app
+        env:
+          PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
         run: |
           .\env\Scripts\activate
           npm run build
 
       - name: Package Electron app for Windows
         env:
+          PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           .\env\Scripts\activate
@@ -106,6 +109,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.79.exe
-          asset_name: associated-pension-automation-hub-1.0.79.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.80.exe
+          asset_name: associated-pension-automation-hub-1.0.80.exe
           asset_content_type: application/vnd.microsoft.portable-executable
