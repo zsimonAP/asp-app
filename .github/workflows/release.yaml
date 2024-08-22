@@ -39,12 +39,10 @@ jobs:
         with:
           node-version: '18.17.0'
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11' # or the version you are using
+      - name: Set up Python (skip global install)
+        run: echo "Skipping global Python setup to use local env."
 
-      - name: Install dependencies
+      - name: Install Node.js dependencies
         run: npm ci
 
       - name: Create Python virtual environment
@@ -61,12 +59,15 @@ jobs:
         shell: powershell
 
       - name: Build Electron app
-        run: npm run build
+        run: |
+          .\env\Scripts\activate
+          npm run build
 
       - name: Package Electron app for Windows
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          .\env\Scripts\activate
           npm run electron:build -- --win
           
           if (-Not (Test-Path -Path "dist" -PathType Container)) {
@@ -90,6 +91,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.75.exe
-          asset_name: associated-pension-automation-hub-1.0.75.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.76.exe
+          asset_name: associated-pension-automation-hub-1.0.76.exe
           asset_content_type: application/vnd.microsoft.portable-executable
