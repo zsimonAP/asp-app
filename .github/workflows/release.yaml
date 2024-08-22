@@ -26,11 +26,26 @@ jobs:
           draft: false
           prerelease: false
 
-  release_windows:
+   release_windows:
     needs: create_release
     runs-on: windows-latest
 
     steps:
+      - name: Clear NPM and Python cache
+        run: |
+          npm cache clean --force
+          pip cache purge
+
+      - name: Clear GitHub Actions cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-clear-cache-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-clear-cache-
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -38,9 +53,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: '18.17.0'
-
-      - name: Set up Python (skip global install)
-        run: echo "Skipping global Python setup to use local env."
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -51,11 +63,16 @@ jobs:
           .\env\Scripts\activate
           pip install -r requirements.txt
 
-      - name: Set Python environment variables
+      - name: Ensure virtual environment is activated and set Python path
         run: |
+          .\env\Scripts\activate
           $env:PYTHONHOME = "${{ github.workspace }}\env"
           $env:PYTHONPATH = "${{ github.workspace }}\env\Lib\site-packages"
           $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
+          python -m pip install --upgrade pip
+          python --version
+          pip --version
+          where python
         shell: powershell
 
       - name: Build Electron app
@@ -91,6 +108,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.76.exe
-          asset_name: associated-pension-automation-hub-1.0.76.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.77.exe
+          asset_name: associated-pension-automation-hub-1.0.77.exe
           asset_content_type: application/vnd.microsoft.portable-executable
