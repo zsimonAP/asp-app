@@ -42,7 +42,6 @@ jobs:
           Remove-Item -Recurse -Force "D:\a\asp-app\asp-app\node_modules" -ErrorAction SilentlyContinue
         shell: powershell
 
-
       - name: Clear GitHub Actions cache
         uses: actions/cache@v3
         with:
@@ -66,32 +65,22 @@ jobs:
 
       - name: Rebuild Python Virtual Environment
         run: |
-          rmdir /S /Q env
+          Remove-Item -Recurse -Force env
           python -m venv env
           .\env\Scripts\activate
           pip install --upgrade pip
           pip install -r requirements.txt
         shell: powershell
 
-      - name: Ensure virtual environment is activated and set path
+      - name: Debug Environment Variables - Pre Build
         run: |
           .\env\Scripts\activate
-          $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
-          python --version
-          pip --version
-          where python
-          echo $env:PATH
-        shell: powershell
-
-      - name: Debug Python Environment Before Build
-        run: |
-          .\env\Scripts\activate
-          python --version
-          where python
-          echo $env:PATH
-          echo $env:PYTHONHOME
-          echo $env:PYTHONPATH
-          echo $env:PYTHONEXECUTABLE
+          echo "Pre-Build Python Version: $(python --version)"
+          echo "Pre-Build Python Executable: $(where python)"
+          echo "Pre-Build PATH: $env:PATH"
+          echo "Pre-Build PYTHONHOME: $env:PYTHONHOME"
+          echo "Pre-Build PYTHONPATH: $env:PYTHONPATH"
+          echo "Pre-Build PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Build Electron app
@@ -104,8 +93,12 @@ jobs:
         run: |
           .\env\Scripts\activate
           npm run build
-          python --version
-          where python
+          echo "Post-Build Python Version: $(python --version)"
+          echo "Post-Build Python Executable: $(where python)"
+          echo "Post-Build PATH: $env:PATH"
+          echo "Post-Build PYTHONHOME: $env:PYTHONHOME"
+          echo "Post-Build PYTHONPATH: $env:PYTHONPATH"
+          echo "Post-Build PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Package Electron app for Windows
@@ -128,17 +121,23 @@ jobs:
             Write-Error "Installer executable not found!"
             exit 1
           }
+          echo "Post-Package Python Version: $(python --version)"
+          echo "Post-Package Python Executable: $(where python)"
+          echo "Post-Package PATH: $env:PATH"
+          echo "Post-Package PYTHONHOME: $env:PYTHONHOME"
+          echo "Post-Package PYTHONPATH: $env:PYTHONPATH"
+          echo "Post-Package PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Debug Environment Post-Build
         run: |
-          .\dist\associated-pension-automation-hub Setup 1.0.83.exe /S /D=D:\a\asp-app\asp-app
+          .\dist\associated-pension-automation-hub Setup 1.0.85.exe /S /D=D:\a\asp-app\asp-app
           python --version
           where python
-          echo $env:PATH
-          echo $env:PYTHONHOME
-          echo $env:PYTHONPATH
-          echo $env:PYTHONEXECUTABLE
+          echo "Final PATH: $env:PATH"
+          echo "Final PYTHONHOME: $env:PYTHONHOME"
+          echo "Final PYTHONPATH: $env:PYTHONPATH"
+          echo "Final PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Upload Release Assets (Windows)
@@ -147,8 +146,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.85.exe
-          asset_name: associated-pension-automation-hub-1.0.85.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.86.exe
+          asset_name: associated-pension-automation-hub-1.0.86.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
