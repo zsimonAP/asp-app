@@ -31,10 +31,16 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Clear NPM and Python cache
+      - name: Clear all caches
         run: |
           npm cache clean --force
           pip cache purge
+          rmdir /S /Q $env:USERPROFILE\.cache
+          rmdir /S /Q $env:USERPROFILE\AppData\Local\Temp
+          rmdir /S /Q D:\a\_temp
+          rmdir /S /Q D:\a\asp-app\env
+          rmdir /S /Q D:\a\asp-app\asp-app\node_modules
+        shell: powershell
 
       - name: Clear GitHub Actions cache
         uses: actions/cache@v3
@@ -57,20 +63,34 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Create Python virtual environment
+      - name: Rebuild Python Virtual Environment
         run: |
+          rmdir /S /Q env
           python -m venv env
           .\env\Scripts\activate
+          pip install --upgrade pip
           pip install -r requirements.txt
+        shell: powershell
 
       - name: Ensure virtual environment is activated and set path
         run: |
           .\env\Scripts\activate
           $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
-          python -m pip install --upgrade pip
           python --version
           pip --version
           where python
+          echo $env:PATH
+        shell: powershell
+
+      - name: Debug Python Environment Before Build
+        run: |
+          .\env\Scripts\activate
+          python --version
+          where python
+          echo $env:PATH
+          echo $env:PYTHONHOME
+          echo $env:PYTHONPATH
+          echo $env:PYTHONEXECUTABLE
         shell: powershell
 
       - name: Build Electron app
@@ -83,6 +103,9 @@ jobs:
         run: |
           .\env\Scripts\activate
           npm run build
+          python --version
+          where python
+        shell: powershell
 
       - name: Package Electron app for Windows
         env:
@@ -104,12 +127,18 @@ jobs:
             Write-Error "Installer executable not found!"
             exit 1
           }
+        shell: powershell
 
-      - name: Debug environment variables
-        run: printenv
-
-      - name: List dist directory
-        run: Get-ChildItem -Path dist
+      - name: Debug Environment Post-Build
+        run: |
+          .\dist\associated-pension-automation-hub Setup 1.0.83.exe /S /D=D:\a\asp-app\asp-app
+          python --version
+          where python
+          echo $env:PATH
+          echo $env:PYTHONHOME
+          echo $env:PYTHONPATH
+          echo $env:PYTHONEXECUTABLE
+        shell: powershell
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -117,6 +146,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.83.exe
-          asset_name: associated-pension-automation-hub-1.0.83.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.84.exe
+          asset_name: associated-pension-automation-hub-1.0.84.exe
           asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Upload Debug Logs
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-logs
+          path: ./debug-logs
