@@ -163,7 +163,15 @@ async function startApp() {
       log.info('Spawning Python process with the following command:');
       log.info(`${pythonPath} ${serverScriptPath}`);
 
-      pythonProcess = spawn(pythonPath, [serverScriptPath], { env: process.env });
+      pythonProcess = spawn(pythonPath, [serverScriptPath], {
+        env: {
+          ...process.env,
+          PYTHONHOME: pythonHome,
+          PYTHONPATH: pythonPathEnv,
+          PYTHONEXECUTABLE: pythonPath,
+          PATH: `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`,
+        },
+      });
 
       pythonProcess.stdout.on('data', (data) => {
         log.info(`Python stdout: ${data}`);
