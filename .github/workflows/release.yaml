@@ -76,6 +76,10 @@ jobs:
       - name: Build Electron app
         env:
           PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
+          PYTHONHOME: D:\a\asp-app\asp-app\env
+          PYTHONPATH: D:\a\asp-app\asp-app\env\Lib\site-packages
+          PYTHONEXECUTABLE: D:\a\asp-app\asp-app\env\Scripts\python.exe
+          PYTHONNOUSERSITE: '1'
         run: |
           .\env\Scripts\activate
           npm run build
@@ -83,6 +87,10 @@ jobs:
       - name: Package Electron app for Windows
         env:
           PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
+          PYTHONHOME: D:\a\asp-app\asp-app\env
+          PYTHONPATH: D:\a\asp-app\asp-app\env\Lib\site-packages
+          PYTHONEXECUTABLE: D:\a\asp-app\asp-app\env\Scripts\python.exe
+          PYTHONNOUSERSITE: '1'
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           .\env\Scripts\activate
@@ -109,6 +117,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.80.exe
-          asset_name: associated-pension-automation-hub-1.0.80.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.81.exe
+          asset_name: associated-pension-automation-hub-1.0.81.exe
           asset_content_type: application/vnd.microsoft.portable-executable
