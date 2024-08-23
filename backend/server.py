@@ -20,8 +20,19 @@ CORS(app)
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
-# Log paths for debugging
+# Hardcode the Python executable path
+hardcoded_python_path = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
+
+if os.path.exists(hardcoded_python_path):
+    logging.info(f"Overriding sys.executable to use the hardcoded path: {hardcoded_python_path}")
+    sys.executable = hardcoded_python_path
+else:
+    logging.error(f"Hardcoded Python executable not found: {hardcoded_python_path}")
+
+# Log paths and environment for debugging
 logging.info(f"Using Python executable: {sys.executable}")
+logging.info(f"sys.path: {sys.path}")
+logging.info(f"Environment Variables: {json.dumps(dict(os.environ), indent=2)}")
 logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 
 @app.route('/list-scripts', methods=['GET'])

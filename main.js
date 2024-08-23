@@ -31,6 +31,7 @@ function createWindow(url) {
   // Handle window close
   win.on('closed', async () => {
     if (pythonProcess) {
+      log.info('Killing Python process...');
       pythonProcess.kill();
     }
     await shutdownFlaskServer(); // Shutdown Flask server
@@ -69,7 +70,7 @@ async function waitForNextJsServer(port = 3000) {
 
 function killPort(port) {
   try {
-    log.info(`Killing process on port ${port}...`);
+    log.info(`Attempting to kill process on port ${port}...`);
     const platform = process.platform;
 
     if (platform === 'win32') {
@@ -79,6 +80,7 @@ function killPort(port) {
         const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
         if (pid) {
           execSync(`taskkill /PID ${pid} /F`);
+          log.info(`Successfully killed process with PID ${pid} on port ${port}.`);
         }
       }
     } else {
@@ -86,10 +88,9 @@ function killPort(port) {
       const processOutput = execSync(command).toString().trim();
       if (processOutput) {
         execSync(`kill -9 ${processOutput}`);
+        log.info(`Successfully killed process on port ${port}.`);
       }
     }
-
-    log.info(`Killed process on port ${port}.`);
   } catch (err) {
     log.error(`Failed to kill process on port ${port}: ${err.message}`);
   }
@@ -161,7 +162,13 @@ async function startApp() {
 
     try {
       log.info('Spawning Python process with the following command:');
-      log.info(`${pythonPath} ${serverScriptPath}`);
+      log.info(`Command: ${pythonPath} ${serverScriptPath}`);
+      log.info('Environment Variables:', JSON.stringify({
+        PYTHONHOME: process.env.PYTHONHOME,
+        PYTHONPATH: process.env.PYTHONPATH,
+        PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
+        PATH: process.env.PATH,
+      }, null, 2));
 
       pythonProcess = spawn(pythonPath, [serverScriptPath], {
         env: {
@@ -212,6 +219,7 @@ app.whenReady().then(startApp);
 
 app.on('window-all-closed', async function () {
   if (pythonProcess) {
+    log.info('Killing Python process...');
     pythonProcess.kill();
   }
   await shutdownFlaskServer(); // Shutdown Flask server
