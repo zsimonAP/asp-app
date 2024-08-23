@@ -35,12 +35,13 @@ jobs:
         run: |
           npm cache clean --force
           pip cache purge
-          rmdir /S /Q $env:USERPROFILE\.cache
-          rmdir /S /Q $env:USERPROFILE\AppData\Local\Temp
-          rmdir /S /Q D:\a\_temp
-          rmdir /S /Q D:\a\asp-app\env
-          rmdir /S /Q D:\a\asp-app\asp-app\node_modules
+          Remove-Item -Recurse -Force "$env:USERPROFILE\.cache" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "$env:USERPROFILE\AppData\Local\Temp" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "D:\a\_temp" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "D:\a\asp-app\env" -ErrorAction SilentlyContinue
+          Remove-Item -Recurse -Force "D:\a\asp-app\asp-app\node_modules" -ErrorAction SilentlyContinue
         shell: powershell
+
 
       - name: Clear GitHub Actions cache
         uses: actions/cache@v3
@@ -146,8 +147,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.84.exe
-          asset_name: associated-pension-automation-hub-1.0.84.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.85.exe
+          asset_name: associated-pension-automation-hub-1.0.85.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
