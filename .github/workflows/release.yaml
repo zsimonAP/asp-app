@@ -41,16 +41,6 @@ jobs:
           Remove-Item -Recurse -Force "D:\a\asp-app\asp-app\node_modules" -ErrorAction SilentlyContinue
         shell: powershell
 
-      - name: Clear GitHub Actions cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.npm
-            ~/.cache/pip
-          key: ${{ runner.os }}-clear-cache-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-clear-cache-
-
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -60,7 +50,11 @@ jobs:
           node-version: '18.17.0'
 
       - name: Install Node.js dependencies
-        run: npm ci
+        run: |
+          # Retry logic in case of transient network issues
+          npm ci || npm ci
+        env:
+          NODE_OPTIONS: '--max_old_space_size=4096'
 
       - name: Package Electron app for Windows
         run: |
@@ -84,7 +78,7 @@ jobs:
 
       - name: Debug Environment Post-Build
         run: |
-          .\dist\associated-pension-automation-hub Setup 1.0.87.exe /S /D=D:\a\asp-app\asp-app
+          .\dist\associated-pension-automation-hub Setup 1.0.89.exe /S /D=D:\a\asp-app\asp-app
           python --version
           where python
           echo "Final PATH: $env:PATH"
@@ -99,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.89.exe
-          asset_name: associated-pension-automation-hub-1.0.89.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.90.exe
+          asset_name: associated-pension-automation-hub-1.0.90.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
@@ -108,3 +102,4 @@ jobs:
         with:
           name: build-logs
           path: ./debug-logs
+
