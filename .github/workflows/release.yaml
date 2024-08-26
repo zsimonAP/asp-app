@@ -57,23 +57,6 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Ensure virtual environment is activated and set path
-        run: |
-          .\env\Scripts\activate
-          $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
-          python -m pip install --upgrade pip
-          python --version
-          pip --version
-          where python
-        shell: powershell
-
-      - name: Set Python Environment Variables
-        run: |
-          echo "PYTHONHOME=D:\a\asp-app\asp-app\env" >> $env:GITHUB_ENV
-          echo "PYTHONPATH=D:\a\asp-app\asp-app\env\Lib\site-packages" >> $env:GITHUB_ENV
-          echo "PYTHONEXECUTABLE=D:\a\asp-app\asp-app\env\Scripts\python.exe" >> $env:GITHUB_ENV
-        shell: powershell
-
       - name: Build Electron app
         env:
           PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
@@ -134,6 +117,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.104.exe
-          asset_name: associated-pension-automation-hub-1.0.104.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.105.exe
+          asset_name: associated-pension-automation-hub-1.0.105.exe
           asset_content_type: application/vnd.microsoft.portable-executable
