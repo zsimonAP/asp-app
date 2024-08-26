@@ -55,11 +55,6 @@ jobs:
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
-
       - name: Create and Activate Virtual Environment
         run: |
           python -m venv env
@@ -132,7 +127,7 @@ jobs:
             dist/*.exe
             dist/latest.yml
           asset_name: |
-            associated-pension-automation-hub-1.0.96.exe
+            associated-pension-automation-hub-1.0.97.exe
             latest.yml
           asset_content_type: application/vnd.microsoft.portable-executable
 
