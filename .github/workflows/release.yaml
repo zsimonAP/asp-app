@@ -55,10 +55,17 @@ jobs:
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
 
+      - name: Set Python Environment Variables
+        run: |
+          echo "PYTHONHOME=D:\a\asp-app\asp-app\env" >> $GITHUB_ENV
+          echo "PYTHONPATH=D:\a\asp-app\asp-app\env\Lib\site-packages" >> $GITHUB_ENV
+          echo "PYTHONEXECUTABLE=D:\a\asp-app\asp-app\env\Scripts\python.exe" >> $GITHUB_ENV
+        shell: bash
+
       - name: Package Electron app for Windows
         run: |
           npm run electron:build -- --win
-          
+
           if (-Not (Test-Path -Path "dist" -PathType Container)) {
             Write-Error "Build output not found!"
             exit 1
@@ -75,10 +82,18 @@ jobs:
           echo "Post-Package PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
-      - name: Debug Environment Post-Build
+      - name: Set Executable Path
+        id: set_executable_path
         run: |
           $executablePath = Get-ChildItem -Path .\dist -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
-          if ($null -eq $executablePath) {
+          echo "Executable Path: $executablePath"
+          echo "::set-output name=exe_path::$executablePath"
+        shell: powershell
+
+      - name: Debug Environment Post-Build
+        run: |
+          $executablePath = '${{ steps.set_executable_path.outputs.exe_path }}'
+          if (-Not (Test-Path -Path $executablePath -PathType Leaf)) {
             Write-Error "Executable not found!"
             exit 1
           }
@@ -97,8 +112,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: $executablePath
-          asset_name: associated-pension-automation-hub-1.0.91.exe
+          asset_path: ${{ steps.set_executable_path.outputs.exe_path }}
+          asset_name: associated-pension-automation-hub-1.0.92.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
