@@ -31,15 +31,20 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Clear all caches
+      - name: Clear NPM and Python cache
         run: |
           npm cache clean --force
           pip cache purge
-          Remove-Item -Recurse -Force "$env:USERPROFILE\.cache" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force "$env:USERPROFILE\AppData\Local\Temp" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force "D:\a\_temp" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force "D:\a\asp-app\asp-app\node_modules" -ErrorAction SilentlyContinue
-        shell: powershell
+
+      - name: Clear GitHub Actions cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/pip
+          key: ${{ runner.os }}-clear-cache-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-clear-cache-
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -50,27 +55,54 @@ jobs:
           node-version: '18.17.0'
 
       - name: Install Node.js dependencies
+        run: npm ci
+
+      - name: Create Python virtual environment
         run: |
-          npm ci || npm ci
-        env:
-          NODE_OPTIONS: '--max_old_space_size=4096'
+          python -m venv env
+          .\env\Scripts\activate
+          pip install -r requirements.txt
+
+      - name: Ensure virtual environment is activated and set path
+        run: |
+          .\env\Scripts\activate
+          $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
+          python -m pip install --upgrade pip
+          python --version
+          pip --version
+          where python
+        shell: powershell
 
       - name: Set Python Environment Variables
         run: |
-          echo "PYTHONHOME=D:\a\asp-app\asp-app\env" >> $GITHUB_ENV
-          echo "PYTHONPATH=D:\a\asp-app\asp-app\env\Lib\site-packages" >> $GITHUB_ENV
-          echo "PYTHONEXECUTABLE=D:\a\asp-app\asp-app\env\Scripts\python.exe" >> $GITHUB_ENV
-        shell: bash
+          echo "PYTHONHOME=D:\a\asp-app\asp-app\env" >> $env:GITHUB_ENV
+          echo "PYTHONPATH=D:\a\asp-app\asp-app\env\Lib\site-packages" >> $env:GITHUB_ENV
+          echo "PYTHONEXECUTABLE=D:\a\asp-app\asp-app\env\Scripts\python.exe" >> $env:GITHUB_ENV
+        shell: powershell
 
-      - name: Build Next.js Application
-        run: npm run build
+      - name: Build Electron app
+        env:
+          PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
+          PYTHONHOME: D:\a\asp-app\asp-app\env
+          PYTHONPATH: D:\a\asp-app\asp-app\env\Lib\site-packages
+          PYTHONEXECUTABLE: D:\a\asp-app\asp-app\env\Scripts\python.exe
+          PYTHONNOUSERSITE: '1'
+        run: |
+          .\env\Scripts\activate
+          npm run build
 
       - name: Package Electron app for Windows
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}  # Make sure this line is included to provide the token
+          PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
+          PYTHONHOME: D:\a\asp-app\asp-app\env
+          PYTHONPATH: D:\a\asp-app\asp-app\env\Lib\site-packages
+          PYTHONEXECUTABLE: D:\a\asp-app\asp-app\env\Scripts\python.exe
+          PYTHONNOUSERSITE: '1'
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
+          .\env\Scripts\activate
           npm run electron:build -- --win
-
+          
           if (-Not (Test-Path -Path "dist" -PathType Container)) {
             Write-Error "Build output not found!"
             exit 1
@@ -79,25 +111,12 @@ jobs:
             Write-Error "Installer executable not found!"
             exit 1
           }
-        shell: powershell
 
-      - name: Set Executable Path
-        id: set_executable_path
-        run: |
-          $executablePath = Get-ChildItem -Path .\dist -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
-          echo "Executable Path: $executablePath"
-          echo "::set-output name=exe_path::$executablePath"
-        shell: powershell
+      - name: Debug environment variables
+        run: printenv
 
-      - name: Upload Latest.yml
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist/latest.yml
-          asset_name: latest.yml
-          asset_content_type: text/yaml
+      - name: List dist directory
+        run: Get-ChildItem -Path dist
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -105,28 +124,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.set_executable_path.outputs.exe_path }}
-          asset_name: associated-pension-automation-hub-1.0.101.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.102.exe
+          asset_name: associated-pension-automation-hub-1.0.102.exe
           asset_content_type: application/vnd.microsoft.portable-executable
-
-      - name: Debug Environment Post-Build
-        run: |
-          $executablePath = '${{ steps.set_executable_path.outputs.exe_path }}'
-          if (-Not (Test-Path -Path $executablePath -PathType Leaf)) {
-            Write-Error "Executable not found!"
-            exit 1
-          }
-          & $executablePath /S /D=D:\a\asp-app\asp-app
-          python --version
-          where python
-          echo "Final PATH: $env:PATH"
-          echo "Final PYTHONHOME: $env:PYTHONHOME"
-          echo "Final PYTHONPATH: $env:PYTHONPATH"
-          echo "Final PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
-        shell: powershell
-
-      - name: Upload Debug Logs
-        uses: actions/upload-artifact@v2
-        with:
-          name: build-logs
-          path: ./debug-logs
