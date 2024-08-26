@@ -62,31 +62,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Build Electron app
-        run: npm run build
-
-      - name: Set Environment Variables for Python Executable
-        run: |
-          $env:PATH = "D:\a\asp-app\asp-app\env\Scripts;$env:PATH"
-          $env:PYTHONHOME = "D:\a\asp-app\asp-app\env"
-          $env:PYTHONPATH = "D:\a\asp-app\asp-app\env\Lib\site-packages"
-          $env:PYTHONEXECUTABLE = "D:\a\asp-app\asp-app\env\Scripts\python.exe"
-          if (-Not (Test-Path $env:PYTHONEXECUTABLE)) {
-            Write-Error "Python executable not found at $env:PYTHONEXECUTABLE"
-            exit 1
-          }
-          echo "Python Version: $(python --version)"
-          echo "Python Executable: $(where python)"
-        shell: powershell
-
       - name: Package Electron app for Windows
-        env:
-          PATH: D:\a\asp-app\asp-app\env\Scripts;${{ env.PATH }}
-          PYTHONHOME: D:\a\asp-app\asp-app\env
-          PYTHONPATH: D:\a\asp-app\asp-app\env\Lib\site-packages
-          PYTHONEXECUTABLE: D:\a\asp-app\asp-app\env\Scripts\python.exe
-          PYTHONNOUSERSITE: '1'
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           npm run electron:build -- --win
           
@@ -123,8 +99,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.88.exe
-          asset_name: associated-pension-automation-hub-1.0.88.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.89.exe
+          asset_name: associated-pension-automation-hub-1.0.89.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
