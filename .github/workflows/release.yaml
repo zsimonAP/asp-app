@@ -55,6 +55,17 @@ jobs:
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
 
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Create Virtual Environment
+        run: |
+          python -m venv env
+          source env/Scripts/activate
+          pip install -r requirements.txt
+
       - name: Set Python Environment Variables
         run: |
           echo "PYTHONHOME=D:\a\asp-app\asp-app\env" >> $GITHUB_ENV
@@ -115,8 +126,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.set_executable_path.outputs.exe_path }}
-          asset_name: associated-pension-automation-hub-1.0.93.exe
+          asset_path: |
+            dist/*.exe
+            dist/latest.yml
+          asset_name: |
+            associated-pension-automation-hub-1.0.94.exe
+            latest.yml
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
