@@ -63,8 +63,9 @@ jobs:
       - name: Create Virtual Environment
         run: |
           python -m venv env
-          source env/Scripts/activate
+          .\env\Scripts\Activate.ps1
           pip install -r requirements.txt
+        shell: powershell
 
       - name: Set Python Environment Variables
         run: |
@@ -130,7 +131,7 @@ jobs:
             dist/*.exe
             dist/latest.yml
           asset_name: |
-            associated-pension-automation-hub-1.0.94.exe
+            associated-pension-automation-hub-1.0.95.exe
             latest.yml
           asset_content_type: application/vnd.microsoft.portable-executable
 
