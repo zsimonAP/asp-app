@@ -51,7 +51,6 @@ jobs:
 
       - name: Install Node.js dependencies
         run: |
-          # Retry logic in case of transient network issues
           npm ci || npm ci
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
@@ -78,7 +77,12 @@ jobs:
 
       - name: Debug Environment Post-Build
         run: |
-          .\dist\associated-pension-automation-hub Setup 1.0.89.exe /S /D=D:\a\asp-app\asp-app
+          $executablePath = Get-ChildItem -Path .\dist -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
+          if ($null -eq $executablePath) {
+            Write-Error "Executable not found!"
+            exit 1
+          }
+          & $executablePath /S /D=D:\a\asp-app\asp-app
           python --version
           where python
           echo "Final PATH: $env:PATH"
@@ -93,8 +97,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.90.exe
-          asset_name: associated-pension-automation-hub-1.0.90.exe
+          asset_path: $executablePath
+          asset_name: associated-pension-automation-hub-1.0.91.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
@@ -102,4 +106,3 @@ jobs:
         with:
           name: build-logs
           path: ./debug-logs
-
