@@ -38,7 +38,6 @@ jobs:
           Remove-Item -Recurse -Force "$env:USERPROFILE\.cache" -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force "$env:USERPROFILE\AppData\Local\Temp" -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force "D:\a\_temp" -ErrorAction SilentlyContinue
-          Remove-Item -Recurse -Force "D:\a\asp-app\env" -ErrorAction SilentlyContinue
           Remove-Item -Recurse -Force "D:\a\asp-app\asp-app\node_modules" -ErrorAction SilentlyContinue
         shell: powershell
 
@@ -63,24 +62,15 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Rebuild Python Virtual Environment
+      - name: Ensure Environment Variables Point to the Correct Python Executable
         run: |
-          Remove-Item -Recurse -Force env
-          python -m venv env
+          $env:PATH = "D:\a\asp-app\asp-app\env\Scripts;$env:PATH"
+          $env:PYTHONHOME = "D:\a\asp-app\asp-app\env"
+          $env:PYTHONPATH = "D:\a\asp-app\asp-app\env\Lib\site-packages"
+          $env:PYTHONEXECUTABLE = "D:\a\asp-app\asp-app\env\Scripts\python.exe"
           .\env\Scripts\activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
-        shell: powershell
-
-      - name: Debug Environment Variables - Pre Build
-        run: |
-          .\env\Scripts\activate
-          echo "Pre-Build Python Version: $(python --version)"
-          echo "Pre-Build Python Executable: $(where python)"
-          echo "Pre-Build PATH: $env:PATH"
-          echo "Pre-Build PYTHONHOME: $env:PYTHONHOME"
-          echo "Pre-Build PYTHONPATH: $env:PYTHONPATH"
-          echo "Pre-Build PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
+          echo "Python Version: $(python --version)"
+          echo "Python Executable: $(where python)"
         shell: powershell
 
       - name: Build Electron app
@@ -95,10 +85,6 @@ jobs:
           npm run build
           echo "Post-Build Python Version: $(python --version)"
           echo "Post-Build Python Executable: $(where python)"
-          echo "Post-Build PATH: $env:PATH"
-          echo "Post-Build PYTHONHOME: $env:PYTHONHOME"
-          echo "Post-Build PYTHONPATH: $env:PYTHONPATH"
-          echo "Post-Build PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Package Electron app for Windows
@@ -146,8 +132,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.86.exe
-          asset_name: associated-pension-automation-hub-1.0.86.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.87.exe
+          asset_name: associated-pension-automation-hub-1.0.87.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs

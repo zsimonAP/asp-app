@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.86",
+  "version": "1.0.87",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
@@ -68,12 +68,16 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico"
+      "icon": "build/icon.ico",
+      "artifactName": "${productName} Setup ${version}.exe"
     },
     "nsis": {
       "oneClick": false,
       "perMachine": true,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Associated Pension Automation Hub"
     }
   }
 }
