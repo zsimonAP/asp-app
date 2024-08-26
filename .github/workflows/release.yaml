@@ -77,12 +77,6 @@ jobs:
             Write-Error "Installer executable not found!"
             exit 1
           }
-          echo "Post-Package Python Version: $(python --version)"
-          echo "Post-Package Python Executable: $(where python)"
-          echo "Post-Package PATH: $env:PATH"
-          echo "Post-Package PYTHONHOME: $env:PYTHONHOME"
-          echo "Post-Package PYTHONPATH: $env:PYTHONPATH"
-          echo "Post-Package PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
 
       - name: Set Executable Path
@@ -92,6 +86,26 @@ jobs:
           echo "Executable Path: $executablePath"
           echo "::set-output name=exe_path::$executablePath"
         shell: powershell
+
+      - name: Upload Latest.yml
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist/latest.yml
+          asset_name: latest.yml
+          asset_content_type: text/yaml
+
+      - name: Upload Release Assets (Windows)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.set_executable_path.outputs.exe_path }}
+          asset_name: associated-pension-automation-hub-1.0.99.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Debug Environment Post-Build
         run: |
@@ -108,16 +122,6 @@ jobs:
           echo "Final PYTHONPATH: $env:PYTHONPATH"
           echo "Final PYTHONEXECUTABLE: $env:PYTHONEXECUTABLE"
         shell: powershell
-
-      - name: Upload Release Assets (Windows)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.set_executable_path.outputs.exe_path }}
-          asset_name: associated-pension-automation-hub-1.0.98.exe
-          asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload Debug Logs
         uses: actions/upload-artifact@v2
