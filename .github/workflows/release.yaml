@@ -56,17 +56,13 @@ jobs:
       - name: Ensure virtual environment is activated and set path
         run: |
           $env:PATH = "${{ github.workspace }}\env\Scripts;$env:PATH"
+          $env:PYTHON = "${{ github.workspace }}\env\Scripts\python.exe"
+          $env:PYTHONHOME = "${{ github.workspace }}\env"
+          $env:PYTHONPATH = "${{ github.workspace }}\env\Lib\site-packages"
           .\env\Scripts\python.exe -m pip install --upgrade pip
           .\env\Scripts\python.exe --version
           .\env\Scripts\pip.exe --version
           .\env\Scripts\python.exe -c "import sys; print(sys.executable)"
-        shell: powershell
-
-      - name: Set Python Environment Variables
-        run: |
-          echo "PYTHONHOME=${{ github.workspace }}\env" >> $env:GITHUB_ENV
-          echo "PYTHONPATH=${{ github.workspace }}\env\Lib\site-packages" >> $env:GITHUB_ENV
-          echo "PYTHONEXECUTABLE=${{ github.workspace }}\env\Scripts\python.exe" >> $env:GITHUB_ENV
         shell: powershell
 
       - name: Debug environment variables
@@ -81,6 +77,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.111.exe
-          asset_name: associated-pension-automation-hub-1.0.111.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.112.exe
+          asset_name: associated-pension-automation-hub-1.0.112.exe
           asset_content_type: application/vnd.microsoft.portable-executable
