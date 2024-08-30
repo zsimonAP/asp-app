@@ -42,6 +42,21 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
+      - name: Check for Python environment
+        run: |
+          if (-not (Test-Path -Path "env" -PathType Container)) {
+            throw "Environment folder 'env' does not exist."
+          } else {
+            Write-Host "Environment folder 'env' exists."
+          }
+          
+          if (-not (Test-Path -Path "env/Scripts/python.exe" -PathType Leaf)) {
+            throw "Python executable 'python.exe' not found in 'env/Scripts/'."
+          } else {
+            Write-Host "Python executable 'python.exe' found in 'env/Scripts/'."
+          }
+        shell: pwsh
+
       - name: Build Electron app
         run: npm run build
 
@@ -54,15 +69,12 @@ jobs:
       - name: Debug environment variables
         run: printenv
 
-      - name: List dist directory
-        run: Get-ChildItem -Path dist
-
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.114.exe
-          asset_name: associated-pension-automation-hub-1.0.114.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.115.exe
+          asset_name: associated-pension-automation-hub-1.0.115.exe
           asset_content_type: application/vnd.microsoft.portable-executable
