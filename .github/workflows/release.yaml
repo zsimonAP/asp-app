@@ -60,6 +60,7 @@ jobs:
       - name: Set Python environment for build
         run: |
           $env:PYTHONHOME = "$PWD/env"
+          $env:PYTHONPATH = "$PWD/env/Lib;$PWD/env/Lib/site-packages"
           $env:PATH = "$PWD/env/Scripts;$env:PATH"
           Write-Host "Python environment set to use 'env/Scripts/python.exe'."
         shell: pwsh
@@ -82,6 +83,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.116.exe
-          asset_name: associated-pension-automation-hub-1.0.116.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.117.exe
+          asset_name: associated-pension-automation-hub-1.0.117.exe
           asset_content_type: application/vnd.microsoft.portable-executable
