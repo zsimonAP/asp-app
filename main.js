@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { createServer } = require('http');
 const next = require('next');
@@ -14,28 +14,33 @@ autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
 
 let pythonProcess;
+let mainWindow;
 
 function createWindow(url) {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
       preload: path.join(app.getAppPath(), 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: true // Ensures security
+      contextIsolation: true, // Ensures security
     },
   });
 
-  win.loadURL(url);
+  mainWindow.loadURL(url);
 
   // Handle window close
-  win.on('closed', async () => {
+  mainWindow.on('closed', async () => {
     if (pythonProcess) {
       log.info('Killing Python process...');
       pythonProcess.kill();
     }
     await shutdownFlaskServer(); // Shutdown Flask server
     killPort(5001); // Kill tasks on port 5001 when the window is closed
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    checkForUpdates();
   });
 }
 
@@ -63,7 +68,7 @@ async function waitForNextJsServer(port = 3000) {
     }, 1000);
     setTimeout(() => {
       clearInterval(interval);
-      reject(new Error("Next.js server did not start in time"));
+      reject(new Error('Next.js server did not start in time'));
     }, 30000); // Timeout after 30 seconds
   });
 }
@@ -163,12 +168,19 @@ async function startApp() {
     try {
       log.info('Spawning Python process with the following command:');
       log.info(`Command: ${pythonPath} ${serverScriptPath}`);
-      log.info('Environment Variables:', JSON.stringify({
-        PYTHONHOME: process.env.PYTHONHOME,
-        PYTHONPATH: process.env.PYTHONPATH,
-        PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
-        PATH: process.env.PATH,
-      }, null, 2));
+      log.info(
+        'Environment Variables:',
+        JSON.stringify(
+          {
+            PYTHONHOME: process.env.PYTHONHOME,
+            PYTHONPATH: process.env.PYTHONPATH,
+            PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
+            PATH: process.env.PATH,
+          },
+          null,
+          2
+        )
+      );
 
       pythonProcess = spawn(pythonPath, [serverScriptPath], {
         env: {
@@ -207,13 +219,29 @@ async function startApp() {
     app.on('activate', function () {
       if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
     });
-
-    autoUpdater.checkForUpdatesAndNotify();
   } catch (error) {
     log.error(`Failed to prepare Next.js application: ${error.message}`);
     app.quit();
   }
 }
+
+function checkForUpdates() {
+  autoUpdater.checkForUpdates();
+}
+
+ipcMain.on('start-update', () => {
+  autoUpdater.quitAndInstall();
+});
+
+autoUpdater.on('update-available', () => {
+  log.info('Update available.');
+  mainWindow.webContents.send('update-available');
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  log.info('Update downloaded');
+  mainWindow.webContents.send('update-ready');
+});
 
 app.whenReady().then(startApp);
 
@@ -225,14 +253,4 @@ app.on('window-all-closed', async function () {
   await shutdownFlaskServer(); // Shutdown Flask server
   killPort(5001); // Kill tasks on port 5001 when all windows are closed
   if (process.platform !== 'darwin') app.quit();
-});
-
-// Event handlers for the updater
-autoUpdater.on('update-available', () => {
-  log.info('Update available.');
-});
-
-autoUpdater.on('update-downloaded', (info) => {
-  log.info('Update downloaded');
-  autoUpdater.quitAndInstall();
 });

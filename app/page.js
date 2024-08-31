@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { ipcRenderer } from 'electron';
 
 export default function Home() {
   const [scripts, setScripts] = useState([]);
@@ -12,6 +13,8 @@ export default function Home() {
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateReady, setUpdateReady] = useState(false);
 
   useEffect(() => {
     const fetchScripts = async () => {
@@ -34,11 +37,22 @@ export default function Home() {
     };
     fetchWebSocketPort();
 
-    // Cleanup WebSocket connection on component unmount
+    // Setup IPC listeners for update events
+    ipcRenderer.on('update-available', () => {
+      setUpdateAvailable(true);
+    });
+
+    ipcRenderer.on('update-ready', () => {
+      setUpdateReady(true);
+    });
+
+    // Cleanup WebSocket connection and IPC listeners on component unmount
     return () => {
       if (websocket) {
         websocket.close();
       }
+      ipcRenderer.removeAllListeners('update-available');
+      ipcRenderer.removeAllListeners('update-ready');
     };
   }, [websocket]);
 
@@ -78,13 +92,42 @@ export default function Home() {
     setWebsocket(ws);
   };
 
+  const handleUpdateButtonClick = () => {
+    ipcRenderer.send('start-update');
+  };
+
   return (
-    <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
+    <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white relative">
       <div className="text-center text-white">
         <h1 className="text-3xl font-bold mb-6">Associated Pension Automation Hub</h1>
         <p className="text-xl mb-4">Automate and run your Python scripts with ease.</p>
       </div>
-      {scripts.length > 0 ? (
+
+      {updateAvailable && !updateReady && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
+          <div className="bg-yellow-100 text-yellow-900 p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-xl font-semibold mb-2">Update Available:</h2>
+            <p>An update is available. Please do not close the app.</p>
+          </div>
+        </div>
+      )}
+
+      {updateReady && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
+          <div className="bg-green-100 text-green-900 p-6 rounded-lg shadow-lg text-center">
+            <h2 className="text-xl font-semibold mb-2">Update Ready:</h2>
+            <p>The update is ready to install. Click "Got it" to start the update.</p>
+            <button
+              onClick={handleUpdateButtonClick}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 mt-4 rounded-lg shadow-md"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!updateAvailable && scripts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {scripts.map((script) => (
             <button
@@ -96,9 +139,8 @@ export default function Home() {
             </button>
           ))}
         </div>
-      ) : (
-        <p className="text-gray-200">No scripts found.</p>
       )}
+
       {showUrlInput && (
         <div className="mt-6 flex">
           <input
@@ -116,12 +158,14 @@ export default function Home() {
           </button>
         </div>
       )}
+
       {output && (
         <div className="mt-6 p-4 bg-blue-100 text-blue-900 rounded-lg shadow-inner">
           <h2 className="text-xl font-semibold mb-2">Output:</h2>
           <pre className="whitespace-pre-wrap">{output}</pre>
         </div>
       )}
+
       {error && (
         <div className="mt-6 p-4 bg-red-100 text-red-900 rounded-lg shadow-inner">
           <h2 className="text-xl font-semibold mb-2">Error:</h2>
@@ -131,3 +175,4 @@ export default function Home() {
     </div>
   );
 }
+
