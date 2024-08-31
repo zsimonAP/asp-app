@@ -18,7 +18,10 @@ CORS(app)
 
 # Ensure the scripts directory path is correct
 SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
+CONFIG_PATH = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'websocket_port.json')
+
+# Ensure the directory exists
+os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
 
 # Hardcode the Python executable path
 hardcoded_python_path = os.path.join(os.path.dirname(__file__), '..', 'env', 'python.exe')
