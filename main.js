@@ -126,7 +126,7 @@ async function startApp() {
     const appRootPath = process.resourcesPath; // Points to the resources directory
 
     const pythonHome = path.join(appRootPath, 'env');
-    const pythonPath = path.join(pythonHome, 'Scripts', 'python.exe');
+    const pythonPath = path.join(pythonHome, 'python.exe');
     const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
 
     // Set environment variables

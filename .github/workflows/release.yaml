@@ -50,18 +50,18 @@ jobs:
             Write-Host "Environment folder 'env' exists."
           }
           
-          if (-not (Test-Path -Path "env/Scripts/python.exe" -PathType Leaf)) {
-            throw "Python executable 'python.exe' not found in 'env/Scripts/'."
+          if (-not (Test-Path -Path "env/python.exe" -PathType Leaf)) {
+            throw "Python executable 'python.exe' not found in 'env/'."
           } else {
-            Write-Host "Python executable 'python.exe' found in 'env/Scripts/'."
+            Write-Host "Python executable 'python.exe' found in 'env/'."
           }
         shell: pwsh
 
       - name: Set Python environment for build
         run: |
           $env:PYTHONHOME = "$PWD/env"
-          $env:PATH = "$PWD/env/Scripts;$env:PATH"
-          Write-Host "Python environment set to use 'env/Scripts/python.exe'."
+          $env:PATH = "$PWD/env;$env:PATH"
+          Write-Host "Python environment set to use 'env/python.exe'."
         shell: pwsh
 
       - name: Build Electron app
@@ -73,15 +73,22 @@ jobs:
           npm run electron:build -- --win
         shell: pwsh
 
-      - name: Debug environment variables
-        run: printenv
-
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub Setup 1.0.116.exe
-          asset_name: associated-pension-automation-hub-1.0.116.exe
+          asset_path: dist\associated-pension-automation-hub Setup 1.0.118.exe
+          asset_name: associated-pension-automation-hub-1.0.118.exe
           asset_content_type: application/vnd.microsoft.portable-executable
+
+      - name: Upload `latest.yml` to Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        with:
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist\latest.yml
+          asset_name: latest.yml
+          asset_content_type: application/octet-stream

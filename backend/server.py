@@ -21,7 +21,7 @@ SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'websocket_port.json')
 
 # Hardcode the Python executable path
-hardcoded_python_path = os.path.join(os.path.dirname(__file__), '..', 'env', 'Scripts', 'python.exe')
+hardcoded_python_path = os.path.join(os.path.dirname(__file__), '..', 'env', 'python.exe')
 
 if os.path.exists(hardcoded_python_path):
     logging.info(f"Overriding sys.executable to use the hardcoded path: {hardcoded_python_path}")
