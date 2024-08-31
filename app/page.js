@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ipcRenderer } from 'electron';
+
+let fs;
+if (typeof window === 'undefined') {
+  fs = require('fs'); // Only require fs when running on the server
+}
 
 export default function Home() {
   const [scripts, setScripts] = useState([]);
@@ -175,4 +179,3 @@ export default function Home() {
     </div>
   );
 }
-
