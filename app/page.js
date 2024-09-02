@@ -120,7 +120,7 @@ export default function Home() {
         <div className="fixed inset-0 bg-black bg-opacity-75 flex justify-center items-center">
           <div className="bg-green-100 text-green-900 p-6 rounded-lg shadow-lg text-center">
             <h2 className="text-xl font-semibold mb-2">Update Ready:</h2>
-            <p>The update is ready to install. Click "Got it" to start the update.</p>
+            <p>The update is ready to install. Click &quot;Got it&quot; to start the update.</p>
             <button
               onClick={handleUpdateButtonClick}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 mt-4 rounded-lg shadow-md"
