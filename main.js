@@ -30,13 +30,12 @@ function createWindow(url) {
 
   mainWindow.loadURL(url);
 
-  // Handle window close
   mainWindow.on('closed', async () => {
     if (pythonProcess) {
       log.info('Killing Python process...');
       pythonProcess.kill();
     }
-    await shutdownFlaskServer(); // Shutdown Flask server
+    await shutdownFlaskServer();
     killPort(5001); // Kill tasks on port 5001 when the window is closed
   });
 }
@@ -48,26 +47,6 @@ async function shutdownFlaskServer() {
   } catch (error) {
     log.error(`Failed to shutdown Flask server: ${error.message}`);
   }
-}
-
-async function waitForNextJsServer(port = 3000) {
-  return new Promise((resolve, reject) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`http://localhost:${port}`);
-        if (response.ok) {
-          clearInterval(interval);
-          resolve(`http://localhost:${port}`);
-        }
-      } catch (error) {
-        log.info(`Waiting for Next.js server on port ${port}...`);
-      }
-    }, 1000);
-    setTimeout(() => {
-      clearInterval(interval);
-      reject(new Error('Next.js server did not start in time'));
-    }, 30000); // Timeout after 30 seconds
-  });
 }
 
 function killPort(port) {
@@ -131,14 +110,12 @@ async function startApp() {
     const pythonPath = path.join(pythonHome, 'python.exe');
     const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
 
-    // Set environment variables
     process.env.PYTHONHOME = pythonHome;
     process.env.PYTHONPATH = pythonPathEnv;
     process.env.PYTHONEXECUTABLE = pythonPath;
     process.env.PYTHONNOUSERSITE = '1';
     process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
 
-    // Log all relevant paths and environment variables
     log.info(`Python path: ${pythonPath}`);
     log.info(`Python home: ${pythonHome}`);
     log.info(`Python path environment: ${pythonPathEnv}`);
@@ -165,19 +142,6 @@ async function startApp() {
     try {
       log.info('Spawning Python process with the following command:');
       log.info(`Command: ${pythonPath} ${serverScriptPath}`);
-      log.info(
-        'Environment Variables:',
-        JSON.stringify(
-          {
-            PYTHONHOME: process.env.PYTHONHOME,
-            PYTHONPATH: process.env.PYTHONPATH,
-            PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
-            PATH: process.env.PATH,
-          },
-          null,
-          2
-        )
-      );
 
       pythonProcess = spawn(pythonPath, [serverScriptPath], {
         env: {
@@ -225,6 +189,13 @@ async function startApp() {
       isUpdateInProgress = true;
       if (mainWindow) {
         mainWindow.webContents.send('update-ready');
+        // Ensure all resources are closed before installing the update
+        shutdownFlaskServer().then(() => {
+          if (pythonProcess) {
+            pythonProcess.kill();
+          }
+          autoUpdater.quitAndInstall();
+        });
       }
     });
 
