@@ -15,6 +15,7 @@ log.info('App starting...');
 
 let pythonProcess;
 let mainWindow;
+let isUpdateInProgress = false;
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
@@ -37,10 +38,6 @@ function createWindow(url) {
     }
     await shutdownFlaskServer(); // Shutdown Flask server
     killPort(5001); // Kill tasks on port 5001 when the window is closed
-  });
-
-  mainWindow.webContents.on('did-finish-load', () => {
-    checkForUpdates();
   });
 }
 
@@ -216,9 +213,25 @@ async function startApp() {
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
 
-    app.on('activate', function () {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow(startUrl);
+    // AutoUpdater event listeners
+    autoUpdater.on('update-available', () => {
+      isUpdateInProgress = true;
+      if (mainWindow) {
+        mainWindow.webContents.send('update-in-progress');
+      }
     });
+
+    autoUpdater.on('update-downloaded', () => {
+      isUpdateInProgress = true;
+      if (mainWindow) {
+        mainWindow.webContents.send('update-ready');
+      }
+    });
+
+    ipcMain.on('start-update', () => {
+      autoUpdater.quitAndInstall();
+    });
+
   } catch (error) {
     log.error(`Failed to prepare Next.js application: ${error.message}`);
     app.quit();
@@ -229,21 +242,10 @@ function checkForUpdates() {
   autoUpdater.checkForUpdates();
 }
 
-ipcMain.on('start-update', () => {
-  autoUpdater.quitAndInstall();
+app.whenReady().then(() => {
+  checkForUpdates();
+  startApp();
 });
-
-autoUpdater.on('update-available', () => {
-  log.info('Update available.');
-  mainWindow.webContents.send('update-available');
-});
-
-autoUpdater.on('update-downloaded', (info) => {
-  log.info('Update downloaded');
-  mainWindow.webContents.send('update-ready');
-});
-
-app.whenReady().then(startApp);
 
 app.on('window-all-closed', async function () {
   if (pythonProcess) {
