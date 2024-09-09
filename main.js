@@ -225,12 +225,6 @@ async function startApp() {
       isUpdateInProgress = true;
       if (mainWindow) {
         mainWindow.webContents.send('update-ready');
-        shutdownFlaskServer().then(() => {
-          if (pythonProcess) {
-            pythonProcess.kill();
-          }
-          autoUpdater.quitAndInstall();
-        });
       }
     });
 
