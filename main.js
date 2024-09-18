@@ -238,17 +238,8 @@ function checkForUpdates() {
   });
 
   autoUpdater.on('update-downloaded', () => {
-    log.info('Update downloaded. Preparing to install...');
-
-    // Close the main window to ensure the app is fully closed before updating
-    if (mainWindow) {
-      mainWindow.close();
-    }
-
-    // Give it a short delay to ensure the app has fully shut down
-    setTimeout(() => {
-      autoUpdater.quitAndInstall(); // Quit and install the update
-    }, 2000);  // Delay for 2 seconds
+    log.info('Update downloaded. Installing...');
+    autoUpdater.quitAndInstall();
   });
 }
 
