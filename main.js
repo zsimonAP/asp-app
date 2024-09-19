@@ -17,25 +17,6 @@ let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
-function createWindow(url) {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      preload: path.join(app.getAppPath(), 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: true, // Ensures security
-    },
-  });
-
-  mainWindow.loadURL(url);
-
-  // Handle window close
-  mainWindow.on('closed', async () => {
-    await stopAllProcesses(); // Gracefully stop all processes
-  });
-}
-
 // Gracefully stop all processes (Python, Flask, etc.)
 async function stopAllProcesses() {
   if (pythonProcess) {
@@ -53,26 +34,6 @@ async function shutdownFlaskServer() {
   } catch (error) {
     log.error(`Failed to shutdown Flask server: ${error.message}`);
   }
-}
-
-async function waitForNextJsServer(port = 3000) {
-  return new Promise((resolve, reject) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`http://localhost:${port}`);
-        if (response.ok) {
-          clearInterval(interval);
-          resolve(`http://localhost:${port}`);
-        }
-      } catch (error) {
-        log.info(`Waiting for Next.js server on port ${port}...`);
-      }
-    }, 1000);
-    setTimeout(() => {
-      clearInterval(interval);
-      reject(new Error('Next.js server did not start in time'));
-    }, 30000); // Timeout after 30 seconds
-  });
 }
 
 function killPort(port) {
@@ -101,6 +62,37 @@ function killPort(port) {
   } catch (err) {
     log.error(`Failed to kill process on port ${port}: ${err.message}`);
   }
+}
+
+// Check for updates before starting anything else
+function checkForUpdates() {
+  log.info('Checking for updates...');
+  autoUpdater.checkForUpdatesAndNotify();
+  
+  autoUpdater.on('update-available', () => {
+    log.info('Update available. Downloading...');
+    isUpdateInProgress = true;
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    log.info('No updates available.');
+    startApp(); // Start the app if no updates
+  });
+
+  autoUpdater.on('error', (error) => {
+    log.error(`Error checking for updates: ${error.message}`);
+    startApp(); // Start the app even if update check failed
+  });
+
+  autoUpdater.on('update-downloaded', async () => {
+    log.info('Update downloaded. Preparing for installation...');
+    
+    // Stop all processes before applying update
+    await stopAllProcesses();
+    
+    log.info('All processes stopped, quitting app to install the update.');
+    autoUpdater.quitAndInstall();
+  });
 }
 
 async function startApp() {
@@ -223,38 +215,8 @@ async function startApp() {
   }
 }
 
-function checkForUpdates() {
-  log.info('Checking for updates...');
-  autoUpdater.checkForUpdatesAndNotify();
-  
-  autoUpdater.on('update-available', () => {
-    log.info('Update available. Downloading...');
-    isUpdateInProgress = true;
-  });
-
-  autoUpdater.on('update-not-available', () => {
-    log.info('No updates available.');
-    startApp(); // Start the app if no updates
-  });
-
-  autoUpdater.on('error', (error) => {
-    log.error(`Error checking for updates: ${error.message}`);
-    startApp(); // Start the app even if update check failed
-  });
-
-  autoUpdater.on('update-downloaded', async () => {
-    log.info('Update downloaded. Preparing for installation...');
-    
-    // Stop all processes before applying update
-    await stopAllProcesses();
-    
-    log.info('All processes stopped, quitting app to install the update.');
-    autoUpdater.quitAndInstall();
-  });
-}
-
 app.whenReady().then(() => {
-  checkForUpdates(); // Check for updates first
+  checkForUpdates(); // Check for updates before anything else
 });
 
 app.on('window-all-closed', async function () {
