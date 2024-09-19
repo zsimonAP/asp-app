@@ -32,13 +32,18 @@ function createWindow(url) {
 
   // Handle window close
   mainWindow.on('closed', async () => {
-    if (pythonProcess) {
-      log.info('Killing Python process...');
-      pythonProcess.kill();
-    }
-    await shutdownFlaskServer(); // Shutdown Flask server
-    killPort(5001); // Kill tasks on port 5001 when the window is closed
+    await stopAllProcesses(); // Gracefully stop all processes
   });
+}
+
+// Gracefully stop all processes (Python, Flask, etc.)
+async function stopAllProcesses() {
+  if (pythonProcess) {
+    log.info('Killing Python process...');
+    pythonProcess.kill();
+  }
+  await shutdownFlaskServer(); // Shutdown Flask server
+  killPort(5001); // Kill tasks on port 5001
 }
 
 async function shutdownFlaskServer() {
@@ -237,8 +242,13 @@ function checkForUpdates() {
     startApp(); // Start the app even if update check failed
   });
 
-  autoUpdater.on('update-downloaded', () => {
-    log.info('Update downloaded. Installing...');
+  autoUpdater.on('update-downloaded', async () => {
+    log.info('Update downloaded. Preparing for installation...');
+    
+    // Stop all processes before applying update
+    await stopAllProcesses();
+    
+    log.info('All processes stopped, quitting app to install the update.');
     autoUpdater.quitAndInstall();
   });
 }
