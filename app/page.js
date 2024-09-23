@@ -7,8 +7,8 @@ export default function Home() {
   const [scripts, setScripts] = useState([]);
   const [output, setOutput] = useState('');
   const [error, setError] = useState('');
-  const [url, setUrl] = useState('');
-  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [inputFields, setInputFields] = useState([]); // Store multiple input fields
+  const [showInputFields, setShowInputFields] = useState(false);
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
@@ -62,10 +62,18 @@ export default function Home() {
     };
   }, [websocket]);
 
-  const handleUrlSubmit = () => {
-    if (!url || !websocket) return;
-    websocket.send(url);
-    setShowUrlInput(false);
+  const handleInputSubmit = () => {
+    if (!websocket) return;
+    inputFields.forEach((field) => {
+      websocket.send(field.value); // Send each input field value to the server
+    });
+    setShowInputFields(false);
+  };
+
+  const handleInputChange = (index, value) => {
+    const newInputFields = [...inputFields];
+    newInputFields[index].value = value;
+    setInputFields(newInputFields); // Update state for specific input field
   };
 
   const runScript = (script) => {
@@ -75,16 +83,21 @@ export default function Home() {
       ws.send(script);
     };
     ws.onmessage = (event) => {
-      if (event.data === "WAIT_FOR_INPUT") {
-        setShowUrlInput(true);
-      } else if (event.data === "SCRIPT_COMPLETED") {
-        setShowUrlInput(false);
+      const data = event.data;
+
+      if (data.startsWith("WAIT_FOR_INPUT")) {
+        const placeholderText = data.split(":")[1] || "Enter input";  // Extract placeholder
+        const newInputField = { placeholder: placeholderText, value: '' }; // New input field
+        setInputFields((prevFields) => [...prevFields, newInputField]); // Add input field dynamically
+        setShowInputFields(true);
+      } else if (data === "SCRIPT_COMPLETED") {
+        setShowInputFields(false);
         setOutput('');
-        setUrl('');
+        setInputFields([]); // Reset input fields after script completes
         setSelectedScript(null);
         ws.close();
       } else {
-        setOutput(prevOutput => prevOutput + '\n' + event.data);
+        setOutput((prevOutput) => prevOutput + '\n' + data);
       }
     };
     ws.onerror = (event) => {
@@ -125,18 +138,22 @@ export default function Home() {
           ) : (
             <p className="text-gray-200">No scripts found.</p>
           )}
-          {showUrlInput && (
-            <div className="mt-6 flex">
-              <input
-                type="text"
-                placeholder="Enter URL"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="border border-gray-300 p-2 rounded-l-lg flex-grow"
-              />
+          {showInputFields && (
+            <div className="mt-6">
+              {inputFields.map((field, index) => (
+                <div className="flex mb-4" key={index}>
+                  <input
+                    type="text"
+                    placeholder={field.placeholder}  // Set placeholder for each input field
+                    value={field.value}  // Set value for each input field
+                    onChange={(e) => handleInputChange(index, e.target.value)}  // Handle changes
+                    className="border border-gray-300 p-2 rounded-l-lg flex-grow"
+                  />
+                </div>
+              ))}
               <button
-                onClick={handleUrlSubmit}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-r-lg shadow-md"
+                onClick={handleInputSubmit}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md"
               >
                 Submit
               </button>
