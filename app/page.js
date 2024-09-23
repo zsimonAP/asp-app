@@ -89,7 +89,7 @@ export default function Home() {
 
         if (data.startsWith("WAIT_FOR_INPUT")) {
             // Extract the message after "WAIT_FOR_INPUT:" and use it as the placeholder for the input field
-            const placeholderText = data.split(":")[1]?.trim() || "Enter input";  // Ensure we trim and have a fallback
+            const placeholderText = data.split(":")[1]?.trim();  // Ensure we trim and have a fallback
 
             // Replace the existing input field with the new placeholder (always only 1 input field)
             setInputFields([{ placeholder: placeholderText, value: '' }]); 
