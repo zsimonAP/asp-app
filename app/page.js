@@ -84,16 +84,18 @@ export default function Home() {
     };
     ws.onmessage = (event) => {
       const data = event.data;
-
-      if (data.startsWith("WAIT_FOR_INPUT")) {
-        const placeholderText = data.split(":")[1] || "Enter input";  // Extract placeholder
-        const newInputField = { placeholder: placeholderText, value: '' }; // New input field
-        setInputFields((prevFields) => [...prevFields, newInputField]); // Add input field dynamically
-        setShowInputFields(true);
+  
+      if (data.startsWith("WAIT_FOR_INPUT:")) {  // Check for correct input signal
+        const placeholderText = data.split(":")[1];  // Extract placeholder after ":"
+        if (placeholderText) {
+          const newInputField = { placeholder: placeholderText, value: '' };  // Add input field with correct placeholder
+          setInputFields((prevFields) => [...prevFields, newInputField]);  // Dynamically add input field
+          setShowInputFields(true);
+        }
       } else if (data === "SCRIPT_COMPLETED") {
         setShowInputFields(false);
         setOutput('');
-        setInputFields([]); // Reset input fields after script completes
+        setInputFields([]);  // Reset input fields after script completes
         setSelectedScript(null);
         ws.close();
       } else {
@@ -110,6 +112,7 @@ export default function Home() {
     };
     setWebsocket(ws);
   };
+  
 
   return (
     <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
@@ -121,7 +124,7 @@ export default function Home() {
         <>
           <div className="text-center text-white">
             <h1 className="text-3xl font-bold mb-6">Associated Pension Automation Hub</h1>
-            <p className="text-xl mb-4">Automate and run your Python scripts updated.</p>
+            <p className="text-xl mb-4">To run the scripts simply press on the desired script, wait for input fields and follow the instructions.</p>
           </div>
           {scripts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
