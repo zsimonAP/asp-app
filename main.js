@@ -42,9 +42,22 @@ async function stopAllProcesses() {
     log.info('Killing Python process...');
     pythonProcess.kill();
   }
+  
   await shutdownFlaskServer(); // Shutdown Flask server
   killPort(5001); // Kill tasks on port 5001
+
+  // Ensure all python.exe processes are forcefully killed on Windows
+  try {
+    if (process.platform === 'win32') {
+      log.info('Attempting to forcefully kill all python.exe processes...');
+      execSync('taskkill /F /IM python.exe');
+      log.info('Successfully killed all python.exe processes.');
+    }
+  } catch (error) {
+    log.error(`Failed to kill python.exe processes: ${error.message}`);
+  }
 }
+
 
 async function shutdownFlaskServer() {
   try {
