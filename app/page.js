@@ -79,41 +79,46 @@ export default function Home() {
   const runScript = (script) => {
     setSelectedScript(script);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
+    
     ws.onopen = () => {
-      ws.send(script);
+        ws.send(script);
     };
+
     ws.onmessage = (event) => {
-      const data = event.data;
+        const data = event.data;
 
-      if (data.startsWith("WAIT_FOR_INPUT")) {
-        // Correctly extract the placeholder text
-        const placeholderText = data.split(":")[1] ? data.split(":")[1].trim() : "Enter input"; // Get the text after ':'
-        
-        const newInputField = { placeholder: placeholderText, value: '' }; // Only one input field
-        setInputFields([newInputField]); // Replace the inputFields array with the new one
-        setShowInputFields(true); // Show the input field
+        if (data.startsWith("WAIT_FOR_INPUT")) {
+            // Extract the message after "WAIT_FOR_INPUT:" and use it as the placeholder for the input field
+            const placeholderText = data.split(":")[1]?.trim() || "Enter input";  // Ensure we trim and have a fallback
 
-      } else if (data === "SCRIPT_COMPLETED") {
-        setShowInputFields(false);
-        setOutput('');
-        setInputFields([]); // Reset input fields after script completes
-        setSelectedScript(null);
-        ws.close();
-      } else {
-        setOutput((prevOutput) => prevOutput + '\n' + data);
-      }
+            // Replace the existing input field with the new placeholder (always only 1 input field)
+            setInputFields([{ placeholder: placeholderText, value: '' }]); 
+            setShowInputFields(true);  // Show the input field
+
+        } else if (data === "SCRIPT_COMPLETED") {
+            setShowInputFields(false);  // Hide input fields when the script is done
+            setOutput('');
+            setInputFields([]);  // Reset input fields after script completes
+            setSelectedScript(null);
+            ws.close();
+        } else {
+            setOutput((prevOutput) => prevOutput + '\n' + data);  // Append other output
+        }
     };
+
     ws.onerror = (event) => {
-      setError('WebSocket error: ' + (event.message || 'Unknown error'));
+        setError('WebSocket error: ' + (event.message || 'Unknown error'));
     };
+
     ws.onclose = (event) => {
-      if (!event.wasClean) {
-        setError('WebSocket closed unexpectedly.');
-      }
+        if (!event.wasClean) {
+            setError('WebSocket closed unexpectedly.');
+        }
     };
+
     setWebsocket(ws);
   };
-
+  
   return (
     <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
       {updateMessage ? (
