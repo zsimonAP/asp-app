@@ -85,26 +85,35 @@ export default function Home() {
     };
 
     ws.onmessage = (event) => {
-        const data = event.data;
-
-        if (data.startsWith("WAIT_FOR_INPUT")) {
-            // Extract the message after "WAIT_FOR_INPUT:" and use it as the placeholder for the input field
-            const placeholderText = data.split(":")[1]?.trim();  // Ensure we trim and have a fallback
-
-            // Replace the existing input field with the new placeholder (always only 1 input field)
-            setInputFields([{ placeholder: placeholderText, value: '' }]); 
-            setShowInputFields(true);  // Show the input field
-
-        } else if (data === "SCRIPT_COMPLETED") {
-            setShowInputFields(false);  // Hide input fields when the script is done
-            setOutput('');
-            setInputFields([]);  // Reset input fields after script completes
-            setSelectedScript(null);
-            ws.close();
-        } else {
-            setOutput((prevOutput) => prevOutput + '\n' + data);  // Append other output
-        }
-    };
+      const data = event.data;
+  
+      if (data.startsWith("WAIT_FOR_INPUT")) {
+          // Extract the placeholder text dynamically from the WebSocket message
+          const placeholderText = data.split(":")[1]?.trim() || "";  // Fallback if no placeholder provided
+  
+          const currentInputFields = [...inputFields];
+  
+          // Update input fields based on current length to avoid duplicate placeholders
+          setInputFields([
+              ...currentInputFields,  // Keep existing fields
+              { placeholder: placeholderText, value: '' }  // Add the new input field with the dynamic placeholder
+          ]);
+  
+          setShowInputFields(true);  // Show the input fields
+      } else if (data === "SCRIPT_COMPLETED") {
+          setShowInputFields(false);  // Hide input fields when the script is done
+          setOutput('');
+          setInputFields([]);  // Reset input fields after script completes
+          setSelectedScript(null);
+          ws.close();
+      } else {
+          setOutput((prevOutput) => prevOutput + '\n' + data);  // Append other output
+      }
+  };
+  
+  
+  
+  
 
     ws.onerror = (event) => {
         setError('WebSocket error: ' + (event.message || 'Unknown error'));

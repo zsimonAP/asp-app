@@ -83,14 +83,19 @@ async def handler(websocket, path):
 
         while True:
             output = process.stdout.readline()
-            if "WAIT_FOR_INPUT" in output:
-                await websocket.send("WAIT_FOR_INPUT")
-                user_input = await websocket.recv()
-                process.stdin.write(user_input + '\n')
-                process.stdin.flush()
+
+            if output:
+                # Forward any output (including WAIT_FOR_INPUT messages) directly to the WebSocket
+                await websocket.send(output.strip())
+
+                # Check if the output includes "WAIT_FOR_INPUT", and if so, wait for user input
+                if "WAIT_FOR_INPUT" in output:
+                    user_input = await websocket.recv()
+                    process.stdin.write(user_input + '\n')
+                    process.stdin.flush()
+
             if output == '' and process.poll() is not None:
                 break
-            await websocket.send(output.strip())
         
         error = process.stderr.read()
         if error:
@@ -101,6 +106,7 @@ async def handler(websocket, path):
     except Exception as e:
         logging.error(f"Handler exception: {e}")
         await websocket.send(str(e))
+
 
 def write_port_to_file(port):
     with open(CONFIG_PATH, "w") as file:
