@@ -138,8 +138,43 @@ export default function Home() {
         <>
           <div className="text-center text-white">
             <h1 className="text-3xl font-bold mb-6">Associated Pension Automation Hub</h1>
-            <p className="text-xl mb-4">Automate and run your Python scripts updated.</p>
           </div>
+
+          <div className="text-left text-white">
+            
+            {/* Directions for running scripts */}
+            <div className="bg-gray-100 text-blue-900 p-4 rounded-lg shadow-inner">
+              <h2 className="text-xl font-semibold mb-2">Instructions for Running Scripts:</h2>
+              <ol className="list-decimal list-inside">
+                <li className="mb-2">
+                  <strong>Select a Script</strong>: Click on the button corresponding to the script you want to run.
+                </li>
+                <li className="mb-2">
+                  <strong>Provide Input</strong>: If required, an input field will appear. Type your response in the field and press <strong>Submit</strong>.
+                </li>
+                <li className="mb-2">
+                  <strong>View Output</strong>: The output of the script will be displayed below the script buttons where you can follow along with its progress.
+                </li>
+                <li className="mb-2">
+                  <strong>Running Scripts</strong>: Only one script can be run at a time.
+                </li>
+                <li className="mb-2">
+                  <strong>Handling Errors</strong>:
+                  <ul className="list-disc list-inside ml-4">
+                    <li>If an error occurs, wait for the output section to disappear before trying again.</li>
+                    <li>Try running the script up to <strong>three times</strong>.</li>
+                    <li>If the issue persists, please contact <strong>Zach Simon</strong> for assistance:</li>
+                    <ul className="list-none ml-4">
+                      <li><strong>Email</strong>: zsimon@associatedpension.com</li>
+                      <li><strong>Phone</strong>: 631-223-9746</li>
+                    </ul>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+
           {scripts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {scripts.map((script) => (
