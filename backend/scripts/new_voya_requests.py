@@ -27,6 +27,7 @@ def get_date_from_user():
                 except ValueError:
                     print("The date format is incorrect. Please enter the date in MM-DD-YYYY format.")
 
+
 if __name__ == "__main__":
     # Populate the variable yesterday_date
     yesterday_date = get_date_from_user()
