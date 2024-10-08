@@ -5,7 +5,7 @@ import axios from 'axios';
 
 export default function Home() {
   const [scripts, setScripts] = useState([]);
-  const [output, setOutput] = useState('');
+  const [output, setOutput] = useState(''); // Will now store progressively updated output
   const [error, setError] = useState('');
   const [inputFields, setInputFields] = useState([]); // Store multiple input fields
   const [showInputFields, setShowInputFields] = useState(false);
@@ -81,48 +81,42 @@ export default function Home() {
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
     
     ws.onopen = () => {
-        ws.send(script);
+      ws.send(script);
     };
 
     ws.onmessage = (event) => {
       const data = event.data;
   
       if (data.startsWith("WAIT_FOR_INPUT")) {
-          // Extract the placeholder text dynamically from the WebSocket message
-          const placeholderText = data.split(":")[1]?.trim() || "";  // Fallback if no placeholder provided
-  
-          const currentInputFields = [...inputFields];
-  
-          // Update input fields based on current length to avoid duplicate placeholders
-          setInputFields([
-              ...currentInputFields,  // Keep existing fields
-              { placeholder: placeholderText, value: '' }  // Add the new input field with the dynamic placeholder
-          ]);
-  
-          setShowInputFields(true);  // Show the input fields
+        const placeholderText = data.split(":")[1]?.trim() || "";
+
+        const currentInputFields = [...inputFields];
+
+        setInputFields([
+          ...currentInputFields,  // Keep existing fields
+          { placeholder: placeholderText, value: '' }  // Add the new input field with the dynamic placeholder
+        ]);
+
+        setShowInputFields(true);  // Show the input fields
       } else if (data === "SCRIPT_COMPLETED") {
-          setShowInputFields(false);  // Hide input fields when the script is done
-          setOutput('');
-          setInputFields([]);  // Reset input fields after script completes
-          setSelectedScript(null);
-          ws.close();
+        setShowInputFields(false);  // Hide input fields when the script is done
+        setOutput('');  // Clear output after script completes
+        setInputFields([]);  // Reset input fields after script completes
+        setSelectedScript(null);
+        ws.close();
       } else {
-          setOutput((prevOutput) => prevOutput + '\n' + data);  // Append other output
+        setOutput((prevOutput) => prevOutput + '\n' + data);  // Append new output progressively
       }
-  };
-  
-  
-  
-  
+    };
 
     ws.onerror = (event) => {
-        setError('WebSocket error: ' + (event.message || 'Unknown error'));
+      setError('WebSocket error: ' + (event.message || 'Unknown error'));
     };
 
     ws.onclose = (event) => {
-        if (!event.wasClean) {
-            setError('WebSocket closed unexpectedly.');
-        }
+      if (!event.wasClean) {
+        setError('WebSocket closed unexpectedly.');
+      }
     };
 
     setWebsocket(ws);
@@ -191,7 +185,8 @@ export default function Home() {
                   className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
                   onClick={() => runScript(script)}
                 >
-                  Run {script}
+                  {/* Display the formatted script name */}
+                  {script.replace(/_/g, ' ').replace('.py', '')}
                 </button>
               ))}
             </div>
@@ -207,6 +202,11 @@ export default function Home() {
                     placeholder={field.placeholder}  // Set placeholder for the input field
                     value={field.value}  // Set value for the input field
                     onChange={(e) => handleInputChange(index, e.target.value)}  // Handle changes
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleInputSubmit(); // Call the submit function when Enter is pressed
+                      }
+                    }}
                     className="border border-gray-300 p-2 rounded-l-lg flex-grow"
                   />
                 </div>
