@@ -12,8 +12,10 @@ from datetime import datetime, timedelta
 import re
 from datetime import datetime
 
-username = 'zsimon13'
-password = '41M@norlaneP'
+print("WAIT_FOR_INPUT:Enter your username", flush=True)
+username = input()
+print("WAIT_FOR_INPUT:Enter your password", flush=True)
+password = input()
 output_path = 'C:\\Users\\zsimon\\Desktop\\Automation_Projects\\Distributions_Scripts\\Principal\\Principal_Tasks.xlsx'
 keywords = [
     "provide loan information", 

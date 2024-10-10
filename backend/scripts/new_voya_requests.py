@@ -32,9 +32,10 @@ if __name__ == "__main__":
     # Populate the variable yesterday_date
     yesterday_date = get_date_from_user()
 
-    # Existing variables
-    user_id = 'zsimon'
-    password = '41M@norlaneV'
+    print("WAIT_FOR_INPUT:Enter your user ID", flush=True)
+    user_id = input()
+    print("WAIT_FOR_INPUT:Enter your password", flush=True)
+    password = input()
     download_folder = "C:\\Users\\Zachary Simon\\Desktop\\VoyaRequests" 
 
     # Filename with today's date
