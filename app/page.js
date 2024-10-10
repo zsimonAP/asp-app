@@ -5,10 +5,12 @@ import axios from 'axios';
 
 export default function Home() {
   const [scripts, setScripts] = useState([]);
-  const [output, setOutput] = useState(''); // Will now store progressively updated output
+  const [output, setOutput] = useState(''); // Store progressively updated output
   const [error, setError] = useState('');
   const [inputFields, setInputFields] = useState([]); // Store multiple input fields
+  const [fileInputFields, setFileInputFields] = useState([]); // Store multiple file input fields
   const [showInputFields, setShowInputFields] = useState(false);
+  const [showFileInputFields, setShowFileInputFields] = useState(false);
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
@@ -70,42 +72,79 @@ export default function Home() {
     setShowInputFields(false);
   };
 
+  const handleFileSubmit = () => {
+    if (!websocket) return;
+
+    fileInputFields.forEach((field) => {
+      if (!field.file) return;
+      
+      const fileReader = new FileReader();
+      fileReader.onload = (e) => {
+        const fileContent = e.target.result;
+        websocket.send(fileContent);  // Send the file content to the server as plain text
+      };
+      fileReader.readAsText(field.file);  // Ensure reading file as text (CSV)
+    });
+    setShowFileInputFields(false);
+};
+
+  
+
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
     newInputFields[index].value = value;
     setInputFields(newInputFields); // Update state for specific input field
   };
 
+  const handleFileChange = (index, file) => {
+    const newFileInputFields = [...fileInputFields];
+    newFileInputFields[index].file = file;
+    setFileInputFields(newFileInputFields);
+  };
+
   const runScript = (script) => {
     setSelectedScript(script);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
-    
+
     ws.onopen = () => {
       ws.send(script);
     };
 
     ws.onmessage = (event) => {
       const data = event.data;
-  
-      if (data.startsWith("WAIT_FOR_INPUT")) {
-        const placeholderText = data.split(":")[1]?.trim() || "";
+
+      if (data.startsWith('WAIT_FOR_INPUT')) {
+        const placeholderText = data.split(':')[1]?.trim() || '';
 
         const currentInputFields = [...inputFields];
 
         setInputFields([
-          ...currentInputFields,  // Keep existing fields
-          { placeholder: placeholderText, value: '' }  // Add the new input field with the dynamic placeholder
+          ...currentInputFields, // Keep existing fields
+          { placeholder: placeholderText, value: '' }, // Add the new input field with the dynamic placeholder
         ]);
 
-        setShowInputFields(true);  // Show the input fields
-      } else if (data === "SCRIPT_COMPLETED") {
-        setShowInputFields(false);  // Hide input fields when the script is done
-        setOutput('');  // Clear output after script completes
-        setInputFields([]);  // Reset input fields after script completes
+        setShowInputFields(true); // Show the input fields
+      } else if (data.startsWith('WAIT_FOR_FILE_INPUT')) {
+        const placeholderText = data.split(':')[1]?.trim() || '';
+
+        const currentFileInputFields = [...fileInputFields];
+
+        setFileInputFields([
+          ...currentFileInputFields, // Keep existing fields
+          { placeholder: placeholderText, file: null }, // Add the new file input field
+        ]);
+
+        setShowFileInputFields(true); // Show the file input fields
+      } else if (data === 'SCRIPT_COMPLETED') {
+        setShowInputFields(false); // Hide input fields when the script is done
+        setShowFileInputFields(false); // Hide file input fields when the script is done
+        setOutput(''); // Clear output after script completes
+        setInputFields([]); // Reset input fields after script completes
+        setFileInputFields([]); // Reset file input fields after script completes
         setSelectedScript(null);
         ws.close();
       } else {
-        setOutput((prevOutput) => prevOutput + '\n' + data);  // Append new output progressively
+        setOutput((prevOutput) => prevOutput + '\n' + data); // Append new output progressively
       }
     };
 
@@ -121,7 +160,7 @@ export default function Home() {
 
     setWebsocket(ws);
   };
-  
+
   return (
     <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
       {updateMessage ? (
@@ -135,7 +174,6 @@ export default function Home() {
           </div>
 
           <div className="text-left text-white">
-            
             {/* Directions for running scripts */}
             <div className="bg-gray-100 text-blue-900 p-4 rounded-lg shadow-inner">
               <h2 className="text-xl font-semibold mb-2">Instructions for Running Scripts:</h2>
@@ -168,14 +206,13 @@ export default function Home() {
             </div>
           </div>
 
-           {/* White line separating instructions and "Scripts" */}
-           <hr className="border-t-2 border-white my-6" />
+          {/* White line separating instructions and "Scripts" */}
+          <hr className="border-t-2 border-white my-6" />
 
           {/* New title "Scripts" */}
           <div className="text-center text-white mb-4">
             <h2 className="text-2xl font-bold">Scripts</h2>
           </div>
-
 
           {scripts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -193,6 +230,7 @@ export default function Home() {
           ) : (
             <p className="text-gray-200">No scripts found.</p>
           )}
+          
           {showInputFields && (
             <div className="mt-6">
               {inputFields.map((field, index) => (
@@ -219,12 +257,54 @@ export default function Home() {
               </button>
             </div>
           )}
+
+          {showFileInputFields && (
+            <div className="mt-6">
+              {fileInputFields.map((field, index) => (
+                <div key={index} className="flex flex-col mb-4">
+                  <div className="flex items-center">
+                    {/* Choose File Button */}
+                    <label className="bg-white hover:bg-blue-700 text-blue-600 px-4 py-2 rounded-lg cursor-pointer mr-4">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleFileChange(index, e.target.files[0])}
+                        className="hidden" // Hide the default file input
+                      />
+                      Upload File
+                    </label>
+
+                    {/* File Name Display Box */}
+                    <div className="rounded-lg border-2 border-white p-2 bg-blue-600 flex-grow">
+                      <span className="text-white">
+                        {field.file ? field.file.name : "No file selected"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Conditionally Render Submit File Button if a file is selected */}
+                  {field.file && (
+                    <button
+                      onClick={handleFileSubmit}
+                      className="mt-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg shadow-md"
+                    >
+                      Submit File
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+
+
           {output && (
             <div className="mt-6 p-4 bg-blue-100 text-blue-900 rounded-lg shadow-inner">
               <h2 className="text-xl font-semibold mb-2">Output:</h2>
               <pre className="whitespace-pre-wrap">{output}</pre>
             </div>
           )}
+
           {error && (
             <div className="mt-6 p-4 bg-red-100 text-red-900 rounded-lg shadow-inner">
               <h2 className="text-xl font-semibold mb-2">Error:</h2>

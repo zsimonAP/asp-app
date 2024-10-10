@@ -8,6 +8,7 @@ import threading
 import websockets
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import tempfile
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -69,12 +70,12 @@ async def handler(websocket, path):
     try:
         script_name = await websocket.recv()
         script_path = os.path.join(SCRIPTS_DIR, script_name)
-        
+
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")
 
         logging.info(f"Executing command: {[sys.executable, script_path]}")
-        
+
         process = subprocess.Popen([sys.executable, script_path],
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE,
@@ -85,27 +86,41 @@ async def handler(websocket, path):
             output = process.stdout.readline()
 
             if output:
-                # Forward any output (including WAIT_FOR_INPUT messages) directly to the WebSocket
+                logging.info(f"Script output: {output.strip()}")
                 await websocket.send(output.strip())
 
-                # Check if the output includes "WAIT_FOR_INPUT", and if so, wait for user input
                 if "WAIT_FOR_INPUT" in output:
                     user_input = await websocket.recv()
                     process.stdin.write(user_input + '\n')
                     process.stdin.flush()
 
+                elif "WAIT_FOR_FILE_INPUT" in output:
+                    # Receive file content from the client
+                    file_content = await websocket.recv()
+
+                    # Write the file content to a temporary file
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
+                        temp_file.write(file_content.encode())  # Ensure content is in bytes
+                        temp_file_path = temp_file.name
+                    
+                    logging.info(f"Temporary file created: {temp_file_path}")
+
+                    # Pass the temp file path to the Python script
+                    process.stdin.write(temp_file_path + '\n')
+                    process.stdin.flush()
+
             if output == '' and process.poll() is not None:
                 break
-        
+
         error = process.stderr.read()
         if error:
-            await websocket.send(error.strip())
-        
+            await websocket.send(f"Error: {error.strip()}")
+
     except websockets.exceptions.ConnectionClosedError as e:
         logging.error(f"Connection closed with error: {e}")
     except Exception as e:
         logging.error(f"Handler exception: {e}")
-        await websocket.send(str(e))
+        await websocket.send(f"Exception: {str(e)}")
 
 
 def write_port_to_file(port):
