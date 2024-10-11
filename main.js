@@ -16,47 +16,17 @@ let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
-// Function to parse environment string (FIREBASE_CREDENTIALS)
-function parseFirebaseCredentials(envString) {
-  const lines = envString.split('\n');
-  const credentials = {};
-
-  lines.forEach(line => {
-    const [key, value] = line.split('=');
-    if (key && value) {
-      credentials[key.trim()] = value.trim();
-    }
-  });
-
-  return credentials;
-}
-
-// Firebase setup
-const firebaseCredentialsString = process.env.FIREBASE_CREDENTIALS;
-
-if (!firebaseCredentialsString) {
-  log.error('FIREBASE_CREDENTIALS environment variable is not defined.');
-  app.quit();  // Exit the app or handle the error as appropriate
+// Firebase setup: Load credentials from file (path from environment variable)
+const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || path.join(__dirname, 'firebase-credentials.json');
+if (!fs.existsSync(credentialsPath)) {
+  log.error('Firebase credentials file is missing.');
+  app.quit();
   return;
 }
 
-// Parse the credentials from the environment variable
-const serviceAccount = parseFirebaseCredentials(firebaseCredentialsString);
-
-// Initialize Firebase Admin SDK with parsed credentials
+// Initialize Firebase Admin SDK with the service account key file
 firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert({
-    type: serviceAccount.type,
-    project_id: serviceAccount.project_id,
-    private_key_id: serviceAccount.private_key_id,
-    private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),  // Format private key properly
-    client_email: serviceAccount.client_email,
-    client_id: serviceAccount.client_id,
-    auth_uri: serviceAccount.auth_uri,
-    token_uri: serviceAccount.token_uri,
-    auth_provider_x509_cert_url: serviceAccount.auth_provider_x509_cert_url,
-    client_x509_cert_url: serviceAccount.client_x509_cert_url,
-  }),
+  credential: firebaseAdmin.credential.cert(require(credentialsPath)),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
 });
 
@@ -64,47 +34,42 @@ const bucket = firebaseAdmin.storage().bucket();
 
 async function downloadPythonFiles() {
   const destinationDir = path.join(__dirname, 'backend', 'scripts');
-  
+
   if (!fs.existsSync(destinationDir)) {
-    fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
+    fs.mkdirSync(destinationDir, { recursive: true });
   }
 
   log.info('Listing files in Firebase Storage bucket...');
   
   try {
-    // Step 2: Get list of files from Firebase Storage bucket
     const [files] = await bucket.getFiles();
-
     const firebaseFileNames = files
-      .filter(file => file.name.endsWith('.py'))  // Step 3: Filter Python files
+      .filter(file => file.name.endsWith('.py'))
       .map(file => file.name.split('/').pop());
 
-    // Step 4: Check for local files that are not in Firebase and delete them
     const localFiles = fs.readdirSync(destinationDir).filter(file => file.endsWith('.py'));
 
     const filesToDelete = localFiles.filter(localFile => !firebaseFileNames.includes(localFile));
     filesToDelete.forEach(fileToDelete => {
       const filePath = path.join(destinationDir, fileToDelete);
-      fs.unlinkSync(filePath);  // Delete the file
+      fs.unlinkSync(filePath);
       log.info(`Deleted local file: ${fileToDelete}`);
     });
 
     log.info('Local files not in Firebase have been deleted.');
 
     const downloadPromises = files
-      .filter(file => file.name.endsWith('.py'))  // Step 5: Filter Python files again for downloading
+      .filter(file => file.name.endsWith('.py'))
       .map(file => {
         const destinationPath = path.join(destinationDir, file.name.split('/').pop());
-        
-        // Step 6: Check if the file already exists
+
         if (fs.existsSync(destinationPath)) {
           log.info(`File already exists: ${file.name}. Skipping download.`);
-          return Promise.resolve();  // Skip this file if it exists
+          return Promise.resolve();
         }
 
         log.info(`Downloading ${file.name} to ${destinationPath}`);
-        
-        // Step 7: Download each Python file if it doesn't exist
+
         return new Promise((resolve, reject) => {
           const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
           fileStream.on('finish', () => {
@@ -118,7 +83,6 @@ async function downloadPythonFiles() {
         });
       });
 
-    // Wait for all files to be downloaded
     await Promise.all(downloadPromises);
     log.info('All Python files downloaded successfully.');
   } catch (error) {
@@ -126,6 +90,7 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
+
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
