@@ -16,11 +16,47 @@ let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
-// Firebase setup
-const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+// Function to parse environment string (FIREBASE_CREDENTIALS)
+function parseFirebaseCredentials(envString) {
+  const lines = envString.split('\n');
+  const credentials = {};
 
+  lines.forEach(line => {
+    const [key, value] = line.split('=');
+    if (key && value) {
+      credentials[key.trim()] = value.trim();
+    }
+  });
+
+  return credentials;
+}
+
+// Firebase setup
+const firebaseCredentialsString = process.env.FIREBASE_CREDENTIALS;
+
+if (!firebaseCredentialsString) {
+  log.error('FIREBASE_CREDENTIALS environment variable is not defined.');
+  app.quit();  // Exit the app or handle the error as appropriate
+  return;
+}
+
+// Parse the credentials from the environment variable
+const serviceAccount = parseFirebaseCredentials(firebaseCredentialsString);
+
+// Initialize Firebase Admin SDK with parsed credentials
 firebaseAdmin.initializeApp({
-  credential: firebaseAdmin.credential.cert(serviceAccount),
+  credential: firebaseAdmin.credential.cert({
+    type: serviceAccount.type,
+    project_id: serviceAccount.project_id,
+    private_key_id: serviceAccount.private_key_id,
+    private_key: serviceAccount.private_key.replace(/\\n/g, '\n'),  // Format private key properly
+    client_email: serviceAccount.client_email,
+    client_id: serviceAccount.client_id,
+    auth_uri: serviceAccount.auth_uri,
+    token_uri: serviceAccount.token_uri,
+    auth_provider_x509_cert_url: serviceAccount.auth_provider_x509_cert_url,
+    client_x509_cert_url: serviceAccount.client_x509_cert_url,
+  }),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
 });
 
@@ -90,8 +126,6 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
-
-
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
