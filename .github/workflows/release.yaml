@@ -42,7 +42,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-       name: Set Firebase Credentials
+      - name: Set Firebase Credentials
         run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
 
       - name: Verify Firebase Credentials File
@@ -93,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.172.exe
-          asset_name: associated-pension-automation-hub-1.0.172.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.173.exe
+          asset_name: associated-pension-automation-hub-1.0.173.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
