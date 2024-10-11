@@ -42,7 +42,7 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Set Firebase Credentials
+       name: Set Firebase Credentials
         run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
 
       - name: Verify Firebase Credentials File
@@ -54,16 +54,6 @@ jobs:
             Write-Host "firebase-credentials.json file created successfully."
           }
         shell: pwsh
-
-      - name: Set Firebase Credentials Environment Variable
-        run: |
-          echo "Setting FIREBASE_CREDENTIALS environment variable"
-          export FIREBASE_CREDENTIALS="${{ secrets.FIREBASE_CREDENTIALS }}"
-          echo $FIREBASE_CREDENTIALS
-        env:
-          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
-        shell: bash
-
 
       - name: Check for Python environment
         run: |
@@ -94,9 +84,6 @@ jobs:
         run: |
           export GH_TOKEN="${{ secrets.GH_TOKEN }}"
           npm run electron:build -- --win
-        env:
-          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
-
         shell: bash
 
 
@@ -106,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.171.exe
-          asset_name: associated-pension-automation-hub-1.0.171.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.172.exe
+          asset_name: associated-pension-automation-hub-1.0.172.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
@@ -119,14 +106,5 @@ jobs:
           asset_path: dist\latest.yml
           asset_name: latest.yml
           asset_content_type: application/octet-stream
-
-      - name: Clean up Firebase credentials
-        run: |
-          if [ -f ./firebase-credentials.json ]; then
-            rm ./firebase-credentials.json
-          else
-            echo "No firebase-credentials.json found to remove."
-          fi
-        shell: bash
 
 
