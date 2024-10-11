@@ -39,12 +39,28 @@ async function downloadPythonFiles() {
     // Step 2: Get list of files from Firebase Storage bucket
     const [files] = await bucket.getFiles();
 
-    const downloadPromises = files
+    const firebaseFileNames = files
       .filter(file => file.name.endsWith('.py'))  // Step 3: Filter Python files
+      .map(file => file.name.split('/').pop());
+
+    // Step 4: Check for local files that are not in Firebase and delete them
+    const localFiles = fs.readdirSync(destinationDir).filter(file => file.endsWith('.py'));
+
+    const filesToDelete = localFiles.filter(localFile => !firebaseFileNames.includes(localFile));
+    filesToDelete.forEach(fileToDelete => {
+      const filePath = path.join(destinationDir, fileToDelete);
+      fs.unlinkSync(filePath);  // Delete the file
+      log.info(`Deleted local file: ${fileToDelete}`);
+    });
+
+    log.info('Local files not in Firebase have been deleted.');
+
+    const downloadPromises = files
+      .filter(file => file.name.endsWith('.py'))  // Step 5: Filter Python files again for downloading
       .map(file => {
         const destinationPath = path.join(destinationDir, file.name.split('/').pop());
         
-        // Step 4: Check if the file already exists
+        // Step 6: Check if the file already exists
         if (fs.existsSync(destinationPath)) {
           log.info(`File already exists: ${file.name}. Skipping download.`);
           return Promise.resolve();  // Skip this file if it exists
@@ -52,7 +68,7 @@ async function downloadPythonFiles() {
 
         log.info(`Downloading ${file.name} to ${destinationPath}`);
         
-        // Step 5: Download each Python file if it doesn't exist
+        // Step 7: Download each Python file if it doesn't exist
         return new Promise((resolve, reject) => {
           const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
           fileStream.on('finish', () => {
@@ -74,6 +90,7 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
+
 
 
 function createWindow(url) {
