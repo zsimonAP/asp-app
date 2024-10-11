@@ -93,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.165.exe
-          asset_name: associated-pension-automation-hub-1.0.165.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.166.exe
+          asset_name: associated-pension-automation-hub-1.0.166.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
@@ -114,4 +114,6 @@ jobs:
           else
             echo "No firebase-credentials.json found to remove."
           fi
+        shell: bash
+
 
