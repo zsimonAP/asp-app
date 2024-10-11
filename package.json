@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.173",
+  "version": "1.0.174",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
@@ -38,6 +38,7 @@
       "public/**/*",
       "main.js",
       "preload.js",
+      "firebase-credentials.json",
       "package.json",
       "node_modules/**/*",
       "env/**/*"

@@ -86,6 +86,17 @@ jobs:
           npm run electron:build -- --win
         shell: bash
 
+      - name: Verify Firebase Credentials File After Packaging
+        run: |
+          if (-Not (Test-Path -Path "./dist/firebase-credentials.json")) {
+            Write-Host "firebase-credentials.json not found after packaging!"
+            exit 1
+          } else {
+            Write-Host "firebase-credentials.json successfully included after packaging."
+          }
+        shell: pwsh
+
+
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -93,8 +104,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.173.exe
-          asset_name: associated-pension-automation-hub-1.0.173.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.174.exe
+          asset_name: associated-pension-automation-hub-1.0.174.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
