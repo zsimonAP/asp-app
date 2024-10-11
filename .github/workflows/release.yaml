@@ -55,6 +55,12 @@ jobs:
           }
         shell: pwsh
 
+      - name: Set Firebase Credentials Environment Variable
+        run: echo "Setting FIREBASE_CREDENTIALS environment variable"
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+
+
 
       - name: Check for Python environment
         run: |
@@ -84,6 +90,7 @@ jobs:
       - name: Package Electron app for Windows
         run: |
           $env:GH_TOKEN="${{ secrets.GH_TOKEN }}"
+          $env:FIREBASE_CREDENTIALS:"${{ secrets.FIREBASE_CREDENTIALS }}""
           npm run electron:build -- --win
         shell: pwsh
 
@@ -93,8 +100,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.166.exe
-          asset_name: associated-pension-automation-hub-1.0.166.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.167.exe
+          asset_name: associated-pension-automation-hub-1.0.167.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
