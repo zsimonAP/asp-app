@@ -56,10 +56,13 @@ jobs:
         shell: pwsh
 
       - name: Set Firebase Credentials Environment Variable
-        run: echo "Setting FIREBASE_CREDENTIALS environment variable"
+        run: |
+          echo "Setting FIREBASE_CREDENTIALS environment variable"
+          export FIREBASE_CREDENTIALS="${{ secrets.FIREBASE_CREDENTIALS }}"
+          echo $FIREBASE_CREDENTIALS
         env:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
-
+        shell: bash
 
 
       - name: Check for Python environment
@@ -103,8 +106,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.170.exe
-          asset_name: associated-pension-automation-hub-1.0.170.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.171.exe
+          asset_name: associated-pension-automation-hub-1.0.171.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
