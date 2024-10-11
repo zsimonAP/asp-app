@@ -89,10 +89,11 @@ jobs:
 
       - name: Package Electron app for Windows
         run: |
-          $env:GH_TOKEN="${{ secrets.GH_TOKEN }}"
-          $env:FIREBASE_CREDENTIALS="${{ secrets.FIREBASE_CREDENTIALS }}""
+          export GH_TOKEN="${{ secrets.GH_TOKEN }}"
+          export FIREBASE_CREDENTIALS="${{ secrets.FIREBASE_CREDENTIALS }}"
           npm run electron:build -- --win
-        shell: pwsh
+        shell: bash
+
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -100,8 +101,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.168.exe
-          asset_name: associated-pension-automation-hub-1.0.168.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.169.exe
+          asset_name: associated-pension-automation-hub-1.0.169.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
