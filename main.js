@@ -1,12 +1,11 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const { createServer } = require('http');
-const next = require('next');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fetch = require('node-fetch');
+const firebaseAdmin = require('firebase-admin');
 
 // Setup logging
 autoUpdater.logger = log;
@@ -16,6 +15,66 @@ log.info('App starting...');
 let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
+
+// Firebase setup
+const serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+
+firebaseAdmin.initializeApp({
+  credential: firebaseAdmin.credential.cert(serviceAccount),
+  storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
+});
+
+const bucket = firebaseAdmin.storage().bucket();
+
+async function downloadPythonFiles() {
+  const destinationDir = path.join(__dirname, 'backend', 'scripts');
+  
+  if (!fs.existsSync(destinationDir)) {
+    fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
+  }
+
+  log.info('Listing files in Firebase Storage bucket...');
+  
+  try {
+    // Step 2: Get list of files from Firebase Storage bucket
+    const [files] = await bucket.getFiles();
+
+    const downloadPromises = files
+      .filter(file => file.name.endsWith('.py'))  // Step 3: Filter Python files
+      .map(file => {
+        const destinationPath = path.join(destinationDir, file.name.split('/').pop());
+        
+        // Step 4: Check if the file already exists
+        if (fs.existsSync(destinationPath)) {
+          log.info(`File already exists: ${file.name}. Skipping download.`);
+          return Promise.resolve();  // Skip this file if it exists
+        }
+
+        log.info(`Downloading ${file.name} to ${destinationPath}`);
+        
+        // Step 5: Download each Python file if it doesn't exist
+        return new Promise((resolve, reject) => {
+          const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
+          fileStream.on('finish', () => {
+            log.info(`Downloaded: ${file.name}`);
+            resolve();
+          });
+          fileStream.on('error', (err) => {
+            log.error(`Failed to download ${file.name}: ${err.message}`);
+            reject(err);
+          });
+        });
+      });
+
+    // Wait for all files to be downloaded
+    await Promise.all(downloadPromises);
+    log.info('All Python files downloaded successfully.');
+  } catch (error) {
+    log.error(`Error listing or downloading files from Firebase Storage: ${error.message}`);
+    throw error;
+  }
+}
+
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
@@ -117,6 +176,16 @@ function killPort(port) {
 }
 
 async function startApp() {
+  // Step 1: Download all Python files from Firebase before proceeding
+  try {
+    await downloadPythonFiles();
+    log.info('All Python files downloaded successfully.');
+  } catch (error) {
+    log.error(`Failed to download Python files: ${error.message}`);
+    app.quit();
+    return;
+  }
+
   const nextAppPath = path.join(__dirname, '.next');
   log.info(`Checking Next.js build files at: ${nextAppPath}`);
 
@@ -263,7 +332,16 @@ function checkForUpdates() {
     log.info('All processes stopped, quitting app to install the update.');
     autoUpdater.quitAndInstall();
   });
+
+  // Fallback: If no update mechanism is working or triggered, start the app.
+  setTimeout(() => {
+    if (!isUpdateInProgress) {
+      log.info('No update in progress. Starting the app...');
+      startApp();
+    }
+  }, 5000); // Start app if no update is detected after 5 seconds
 }
+
 
 app.whenReady().then(() => {
   checkForUpdates(); // Check for updates first

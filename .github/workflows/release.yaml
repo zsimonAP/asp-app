@@ -62,6 +62,8 @@ jobs:
           $env:PYTHONHOME = "$PWD/env"
           $env:PATH = "$PWD/env;$env:PATH"
           Write-Host "Python environment set to use 'env/python.exe'."
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
         shell: pwsh
 
       - name: Build Electron app
