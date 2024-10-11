@@ -47,12 +47,14 @@ jobs:
 
       - name: Verify Firebase Credentials File
         run: |
-          if [ ! -f ./firebase-credentials.json ]; then
-            echo "firebase-credentials.json file not found!"
+          if (-Not (Test-Path -Path "./firebase-credentials.json")) {
+            Write-Host "firebase-credentials.json file not found!"
             exit 1
-          else
-            echo "firebase-credentials.json file created successfully."
-          fi
+          } else {
+            Write-Host "firebase-credentials.json file created successfully."
+          }
+        shell: pwsh
+
 
       - name: Check for Python environment
         run: |
@@ -91,8 +93,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.164.exe
-          asset_name: associated-pension-automation-hub-1.0.164.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.165.exe
+          asset_name: associated-pension-automation-hub-1.0.165.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
