@@ -51,9 +51,9 @@ jobs:
           }
           
           if (-not (Test-Path -Path "env/python.exe" -PathType Leaf)) {
-            throw "Python executable 'python.exe' not found in 'env/'."
+            throw "Python executable 'python.exe' not found in 'env/'"
           } else {
-            Write-Host "Python executable 'python.exe' found in 'env/'."
+            Write-Host "Python executable 'python.exe' found in 'env/'"
           }
         shell: pwsh
 
@@ -66,14 +66,29 @@ jobs:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
         shell: pwsh
 
+      - name: Verify FIREBASE_CREDENTIALS
+        run: |
+          if ($env:FIREBASE_CREDENTIALS) {
+            Write-Host "FIREBASE_CREDENTIALS is defined."
+          } else {
+            Write-Host "FIREBASE_CREDENTIALS is not defined."
+          }
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        shell: pwsh
+
       - name: Build Electron app
         run: npm run build
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
 
       - name: Package Electron app for Windows
         run: |
           $env:GH_TOKEN="${{ secrets.GH_TOKEN }}"
           npm run electron:build -- --win
         shell: pwsh
+        env:
+          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -81,8 +96,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.158.exe
-          asset_name: associated-pension-automation-hub-1.0.158.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.159.exe
+          asset_name: associated-pension-automation-hub-1.0.159.exe
           asset_content_type: application/vnd.microsoft.portale-executable
 
       - name: Upload `latest.yml` to Release Assets
