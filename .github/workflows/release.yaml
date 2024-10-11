@@ -61,26 +61,24 @@ jobs:
         run: |
           $env:PYTHONHOME = "$PWD/env"
           $env:PATH = "$PWD/env;$env:PATH"
-          Write-Host "Python environment set to use 'env/python.exe'."
+          Write-Host "Python environment set to use 'env/python.exe'." 
         env:
           FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
         shell: pwsh
 
       - name: Create Firebase credentials file
-        run: echo "$FIREBASE_CREDENTIALS" > $GITHUB_WORKSPACE/firebase-credentials.json
-        env:
-          FIREBASE_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+        run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" > $GITHUB_WORKSPACE/firebase-credentials.json
 
       - name: Set Firebase credentials path
-        run: export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/firebase-credentials.json"
+        run: echo "Setting GOOGLE_APPLICATION_CREDENTIALS path" && export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/firebase-credentials.json"
         shell: bash
 
       - name: Verify FIREBASE_CREDENTIALS
         run: |
           if [ -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-            echo "FIREBASE_CREDENTIALS is defined and file exists."
+            echo "GOOGLE_APPLICATION_CREDENTIALS is defined and file exists."
           else
-            echo "FIREBASE_CREDENTIALS file is not defined or missing."
+            echo "GOOGLE_APPLICATION_CREDENTIALS file is not defined or missing."
             exit 1
           fi
         shell: bash
@@ -88,7 +86,7 @@ jobs:
       - name: Build Electron app
         run: npm run build
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          GOOGLE_APPLICATION_CREDENTIALS: $GITHUB_WORKSPACE/firebase-credentials.json
 
       - name: Package Electron app for Windows
         run: |
@@ -96,7 +94,7 @@ jobs:
           npm run electron:build -- --win
         shell: pwsh
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_CREDENTIALS }}
+          GOOGLE_APPLICATION_CREDENTIALS: $GITHUB_WORKSPACE/firebase-credentials.json
 
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
@@ -104,9 +102,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.160.exe
-          asset_name: associated-pension-automation-hub-1.0.160.exe
-          asset_content_type: application/vnd.microsoft.portale-executable
+          asset_path: dist\associated-pension-automation-hub-1.0.161.exe
+          asset_name: associated-pension-automation-hub-1.0.161.exe
+          asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
         uses: actions/upload-release-asset@v1
