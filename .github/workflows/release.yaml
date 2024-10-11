@@ -45,6 +45,15 @@ jobs:
       - name: Set Firebase Credentials
         run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
 
+      - name: Verify Firebase Credentials File
+        run: |
+          if [ ! -f ./firebase-credentials.json ]; then
+            echo "firebase-credentials.json file not found!"
+            exit 1
+          else
+            echo "firebase-credentials.json file created successfully."
+          fi
+
       - name: Check for Python environment
         run: |
           if (-not (Test-Path -Path "env" -PathType Container)) {
@@ -82,8 +91,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.163.exe
-          asset_name: associated-pension-automation-hub-1.0.163.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.164.exe
+          asset_name: associated-pension-automation-hub-1.0.164.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
@@ -97,4 +106,10 @@ jobs:
           asset_content_type: application/octet-stream
 
       - name: Clean up Firebase credentials
-        run: rm $GITHUB_WORKSPACE/firebase-credentials.json
+        run: |
+          if [ -f ./firebase-credentials.json ]; then
+            rm ./firebase-credentials.json
+          else
+            echo "No firebase-credentials.json found to remove."
+          fi
+
