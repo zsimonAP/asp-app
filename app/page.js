@@ -240,7 +240,8 @@ export default function Home() {
           {selectedFolder && (
             <>
               <div className="text-center text-white mb-4 mt-6">
-                <h2 className="text-2xl font-bold">Scripts in "{selectedFolder}"</h2>
+              <h2 className="text-2xl font-bold">Scripts in &quot;{selectedFolder}&quot;</h2>
+
               </div>
 
               {scripts.length > 0 ? (
