@@ -48,7 +48,8 @@ const bucket = firebaseAdmin.storage().bucket();
 
 async function downloadPythonFiles() {
   // Use a writable directory, such as the app's userData directory
-  const destinationDir = path.join(app.getPath('userData'), 'backend', 'scripts');
+  const localAppDataPath = process.env.LOCALAPPDATA;
+  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
   
   if (!fs.existsSync(destinationDir)) {
     fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
@@ -106,10 +107,6 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
-
-
-
-
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
