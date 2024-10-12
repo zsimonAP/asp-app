@@ -65,7 +65,7 @@ async function listFolders() {
 // Function to download Python files from a specific folder
 async function downloadPythonFiles(folderName) {
   const localAppDataPath = process.env.LOCALAPPDATA;
-  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts', folderName);
+  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
 
   if (!fs.existsSync(destinationDir)) {
     fs.mkdirSync(destinationDir, { recursive: true });
