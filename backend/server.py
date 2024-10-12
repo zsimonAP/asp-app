@@ -42,7 +42,19 @@ logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
     try:
-        scripts = [f for f in os.listdir(SCRIPTS_DIR) if f.endswith('.py')]
+        # Get folder from query params
+        folder_name = request.args.get('folder')
+        
+        if not folder_name:
+            return jsonify({"error": "Folder parameter is required"}), 400
+        
+        folder_path = os.path.join(SCRIPTS_DIR, folder_name)
+        
+        if not os.path.exists(folder_path):
+            return jsonify({"error": f"Folder {folder_name} does not exist"}), 404
+
+        # List only Python files in the selected folder
+        scripts = [f for f in os.listdir(folder_path) if f.endswith('.py')]
         return jsonify({"scripts": scripts}), 200
     except Exception as e:
         logging.error(f"Error listing scripts: {e}")

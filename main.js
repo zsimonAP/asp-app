@@ -46,67 +46,94 @@ firebaseAdmin.initializeApp({
 
 const bucket = firebaseAdmin.storage().bucket();
 
-async function downloadPythonFiles() {
-  // Use a writable directory, such as the app's userData directory
-  const localAppDataPath = process.env.LOCALAPPDATA;
-  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
-  
-  if (!fs.existsSync(destinationDir)) {
-    fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
-  }
-
-  log.info('Listing files in Firebase Storage bucket...');
-  
+// Function to list folders and scripts
+async function listFoldersAndFiles() {
   try {
     const [files] = await bucket.getFiles();
+    const folderNames = new Set();
+    const folderContent = {};
 
-    const firebaseFileNames = files
-      .filter(file => file.name.endsWith('.py'))  // Filter Python files
-      .map(file => file.name.split('/').pop());
+    files.forEach((file) => {
+      const pathSegments = file.name.split('/');
+      const folderName = pathSegments[0]; // Extract folder name
+      const fileName = pathSegments[pathSegments.length - 1];
 
-    const localFiles = fs.readdirSync(destinationDir).filter(file => file.endsWith('.py'));
+      if (!folderNames.has(folderName)) {
+        folderNames.add(folderName);
+        folderContent[folderName] = []; // Initialize folder array
+      }
 
-    const filesToDelete = localFiles.filter(localFile => !firebaseFileNames.includes(localFile));
-    filesToDelete.forEach(fileToDelete => {
-      const filePath = path.join(destinationDir, fileToDelete);
-      fs.unlinkSync(filePath);  // Delete the file
-      log.info(`Deleted local file: ${fileToDelete}`);
+      if (fileName.endsWith('.py')) {
+        folderContent[folderName].push(fileName); // Add Python script to folder
+      }
     });
 
-    log.info('Local files not in Firebase have been deleted.');
-
-    const downloadPromises = files
-      .filter(file => file.name.endsWith('.py'))
-      .map(file => {
-        const destinationPath = path.join(destinationDir, file.name.split('/').pop());
-        
-        if (fs.existsSync(destinationPath)) {
-          log.info(`File already exists: ${file.name}. Skipping download.`);
-          return Promise.resolve();
-        }
-
-        log.info(`Downloading ${file.name} to ${destinationPath}`);
-
-        return new Promise((resolve, reject) => {
-          const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
-          fileStream.on('finish', () => {
-            log.info(`Downloaded: ${file.name}`);
-            resolve();
-          });
-          fileStream.on('error', (err) => {
-            log.error(`Failed to download ${file.name}: ${err.message}`);
-            reject(err);
-          });
-        });
-      });
-
-    await Promise.all(downloadPromises);
-    log.info('All Python files downloaded successfully.');
+    return { folderNames: Array.from(folderNames), folderContent };
   } catch (error) {
-    log.error(`Error listing or downloading files from Firebase Storage: ${error.message}`);
+    log.error('Error listing folders and files:', error);
     throw error;
   }
 }
+
+async function downloadPythonFiles(folderName) {
+  const localAppDataPath = process.env.LOCALAPPDATA;
+  const destinationDir = path.join(localAppDataPath, 'python-scripts', folderName);
+
+  if (!fs.existsSync(destinationDir)) {
+    fs.mkdirSync(destinationDir, { recursive: true });
+  }
+
+  const { folderContent } = await listFoldersAndFiles();
+  const filesToDownload = folderContent[folderName];
+
+  const downloadPromises = filesToDownload.map((file) => {
+    const destinationPath = path.join(destinationDir, file);
+
+    if (fs.existsSync(destinationPath)) {
+      log.info(`File already exists: ${file}. Skipping download.`);
+      return Promise.resolve();
+    }
+
+    log.info(`Downloading ${file} to ${destinationPath}`);
+    return new Promise((resolve, reject) => {
+      const fileStream = bucket
+        .file(`${folderName}/${file}`)
+        .createReadStream()
+        .pipe(fs.createWriteStream(destinationPath));
+
+      fileStream.on('finish', () => {
+        log.info(`Downloaded: ${file}`);
+        resolve();
+      });
+      fileStream.on('error', (err) => {
+        log.error(`Failed to download ${file}: ${err.message}`);
+        reject(err);
+      });
+    });
+  });
+
+  await Promise.all(downloadPromises);
+}
+
+ipcMain.handle('list-folders', async () => {
+  try {
+    const { folderNames } = await listFoldersAndFiles();
+    return { folders: folderNames };
+  } catch (error) {
+    log.error('Failed to list folders:', error);
+    return { error: 'Failed to list folders' };
+  }
+});
+
+ipcMain.handle('list-scripts', async (event, folderName) => {
+  try {
+    const { folderContent } = await listFoldersAndFiles();
+    return { scripts: folderContent[folderName] || [] };
+  } catch (error) {
+    log.error('Failed to list scripts for folder:', error);
+    return { error: 'Failed to list scripts' };
+  }
+});
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({

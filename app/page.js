@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Home() {
+  const [folders, setFolders] = useState([]);
   const [scripts, setScripts] = useState([]);
   const [output, setOutput] = useState(''); // Store progressively updated output
   const [error, setError] = useState('');
@@ -14,6 +15,7 @@ export default function Home() {
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
+  const [selectedFolder, setSelectedFolder] = useState(null);
   const [updateMessage, setUpdateMessage] = useState('');
 
   useEffect(() => {
@@ -32,15 +34,16 @@ export default function Home() {
       });
     }
 
-    const fetchScripts = async () => {
+    const fetchFolders = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-scripts');
-        setScripts(response.data.scripts);
+        const response = await axios.get('http://localhost:5001/list-folders');
+        setFolders(response.data.folders); // Folders fetched from backend
       } catch (err) {
-        setError('Failed to fetch scripts: ' + err.message);
+        setError('Failed to fetch folders: ' + err.message);
       }
-    };    
-    fetchScripts();
+    };
+    
+    fetchFolders();
 
     const fetchWebSocketPort = async () => {
       try {
@@ -50,9 +53,9 @@ export default function Home() {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
+
     fetchWebSocketPort();
 
-    // Cleanup WebSocket connection on component unmount
     return () => {
       if (websocket) {
         websocket.close();
@@ -63,6 +66,16 @@ export default function Home() {
       }
     };
   }, [websocket]);
+
+  const handleFolderClick = async (folder) => {
+    try {
+      const response = await axios.get(`http://localhost:5001/list-scripts?folder=${folder}`);
+      setScripts(response.data.scripts); // List of scripts in the folder
+      setSelectedFolder(folder); // Update selected folder
+    } catch (err) {
+      setError('Failed to fetch scripts: ' + err.message);
+    }
+  };
 
   const handleInputSubmit = () => {
     if (!websocket) return;
@@ -77,18 +90,16 @@ export default function Home() {
 
     fileInputFields.forEach((field) => {
       if (!field.file) return;
-      
+
       const fileReader = new FileReader();
       fileReader.onload = (e) => {
         const fileContent = e.target.result;
-        websocket.send(fileContent);  // Send the file content to the server as plain text
+        websocket.send(fileContent); // Send the file content to the server as plain text
       };
-      fileReader.readAsText(field.file);  // Ensure reading file as text (CSV)
+      fileReader.readAsText(field.file); // Ensure reading file as text (CSV)
     });
     setShowFileInputFields(false);
-};
-
-  
+  };
 
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
@@ -116,10 +127,8 @@ export default function Home() {
       if (data.startsWith('WAIT_FOR_INPUT')) {
         const placeholderText = data.split(':')[1]?.trim() || '';
 
-        const currentInputFields = [...inputFields];
-
         setInputFields([
-          ...currentInputFields, // Keep existing fields
+          ...inputFields, // Keep existing fields
           { placeholder: placeholderText, value: '' }, // Add the new input field with the dynamic placeholder
         ]);
 
@@ -127,10 +136,8 @@ export default function Home() {
       } else if (data.startsWith('WAIT_FOR_FILE_INPUT')) {
         const placeholderText = data.split(':')[1]?.trim() || '';
 
-        const currentFileInputFields = [...fileInputFields];
-
         setFileInputFields([
-          ...currentFileInputFields, // Keep existing fields
+          ...fileInputFields, // Keep existing fields
           { placeholder: placeholderText, file: null }, // Add the new file input field
         ]);
 
@@ -206,40 +213,64 @@ export default function Home() {
             </div>
           </div>
 
-          {/* White line separating instructions and "Scripts" */}
+          {/* White line separating instructions and "Folders" */}
           <hr className="border-t-2 border-white my-6" />
 
-          {/* New title "Scripts" */}
+          {/* New title "Folders" */}
           <div className="text-center text-white mb-4">
-            <h2 className="text-2xl font-bold">Scripts</h2>
+            <h2 className="text-2xl font-bold">Folders</h2>
           </div>
 
-          {scripts.length > 0 ? (
+          {folders.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {scripts.map((script) => (
+              {folders.map((folder) => (
                 <button
-                  key={script}
-                  className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                  onClick={() => runScript(script)}
+                  key={folder}
+                  className="bg-white text-blue-600 hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                  onClick={() => handleFolderClick(folder)}
                 >
-                  {/* Display the formatted script name */}
-                  {script.replace(/_/g, ' ').replace('.py', '')}
+                  {folder}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-gray-200">No scripts found.</p>
+            <p className="text-gray-200">No folders found.</p>
           )}
-          
+
+          {selectedFolder && (
+            <>
+              <div className="text-center text-white mb-4 mt-6">
+                <h2 className="text-2xl font-bold">Scripts in "{selectedFolder}"</h2>
+              </div>
+
+              {scripts.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {scripts.map((script) => (
+                    <button
+                      key={script}
+                      className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                      onClick={() => runScript(script)}
+                    >
+                      {/* Display the formatted script name */}
+                      {script.replace(/_/g, ' ').replace('.py', '')}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-200">No scripts found in this folder.</p>
+              )}
+            </>
+          )}
+
           {showInputFields && (
             <div className="mt-6">
               {inputFields.map((field, index) => (
                 <div className="flex mb-4" key={index}>
                   <input
                     type="text"
-                    placeholder={field.placeholder}  // Set placeholder for the input field
-                    value={field.value}  // Set value for the input field
-                    onChange={(e) => handleInputChange(index, e.target.value)}  // Handle changes
+                    placeholder={field.placeholder} // Set placeholder for the input field
+                    value={field.value} // Set value for the input field
+                    onChange={(e) => handleInputChange(index, e.target.value)} // Handle changes
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleInputSubmit(); // Call the submit function when Enter is pressed
@@ -277,7 +308,7 @@ export default function Home() {
                     {/* File Name Display Box */}
                     <div className="rounded-lg border-2 border-white p-2 bg-blue-600 flex-grow">
                       <span className="text-white">
-                        {field.file ? field.file.name : "No file selected"}
+                        {field.file ? field.file.name : 'No file selected'}
                       </span>
                     </div>
                   </div>
@@ -295,8 +326,6 @@ export default function Home() {
               ))}
             </div>
           )}
-
-
 
           {output && (
             <div className="mt-6 p-4 bg-blue-100 text-blue-900 rounded-lg shadow-inner">
