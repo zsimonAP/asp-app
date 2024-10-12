@@ -81,7 +81,7 @@ def shutdown():
 async def handler(websocket, path):
     try:
         script_name = await websocket.recv()
-        script_path = os.path.join(SCRIPTS_DIR, script_name)
+        script_path = os.path.join(SCRIPTS_DIR, script_name)  # Ensure path includes folder
 
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")

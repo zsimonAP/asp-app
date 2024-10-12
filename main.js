@@ -77,7 +77,8 @@ async function listFoldersAndFiles() {
 
 async function downloadPythonFiles(folderName) {
   const localAppDataPath = process.env.LOCALAPPDATA;
-  const destinationDir = path.join(localAppDataPath, 'python-scripts', folderName);
+  // Ensure the destination matches what the server.py is using
+  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
 
   if (!fs.existsSync(destinationDir)) {
     fs.mkdirSync(destinationDir, { recursive: true });
@@ -85,6 +86,11 @@ async function downloadPythonFiles(folderName) {
 
   const { folderContent } = await listFoldersAndFiles();
   const filesToDownload = folderContent[folderName];
+
+  if (!filesToDownload || filesToDownload.length === 0) {
+    log.info(`No files to download from folder: ${folderName}`);
+    return;
+  }
 
   const downloadPromises = filesToDownload.map((file) => {
     const destinationPath = path.join(destinationDir, file);
@@ -114,6 +120,17 @@ async function downloadPythonFiles(folderName) {
 
   await Promise.all(downloadPromises);
 }
+
+ipcMain.handle('download-files-from-folder', async (event, folderName) => {
+  try {
+    await downloadPythonFiles(folderName);
+    return { success: true, message: `Files downloaded from folder: ${folderName}` };
+  } catch (error) {
+    log.error(`Failed to download files from folder: ${folderName}, Error: ${error.message}`);
+    return { success: false, error: `Failed to download files from folder: ${folderName}` };
+  }
+});
+
 
 ipcMain.handle('list-folders', async () => {
   try {

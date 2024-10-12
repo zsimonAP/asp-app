@@ -69,13 +69,23 @@ export default function Home() {
 
   const handleFolderClick = async (folder) => {
     try {
-      const response = await axios.get(`http://localhost:5001/list-scripts?folder=${folder}`);
-      setScripts(response.data.scripts); // List of scripts in the folder
-      setSelectedFolder(folder); // Update selected folder
+      // Trigger the file download first
+      const { success, message } = await window.electronAPI.invoke('download-files-from-folder', folder);
+      if (success) {
+        console.log(message);
+        // Fetch the scripts after files are successfully downloaded
+        const response = await axios.get(`http://localhost:5001/list-scripts?folder=${folder}`);
+        setScripts(response.data.scripts);
+        setSelectedFolder(folder);
+      } else {
+        console.error(message);
+        setError('Failed to download scripts.');
+      }
     } catch (err) {
       setError('Failed to fetch scripts: ' + err.message);
     }
-  };
+  };  
+  
 
   const handleInputSubmit = () => {
     if (!websocket) return;
@@ -118,7 +128,7 @@ export default function Home() {
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
 
     ws.onopen = () => {
-      ws.send(script);
+      ws.send(`${selectedFolder}/${script}`); 
     };
 
     ws.onmessage = (event) => {
