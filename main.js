@@ -336,6 +336,8 @@ async function startApp() {
   }
 }
 
+let appStarted = false;  // Flag to ensure app only starts once
+
 function checkForUpdates() {
   log.info('Checking for updates...');
   autoUpdater.checkForUpdatesAndNotify();
@@ -347,12 +349,18 @@ function checkForUpdates() {
 
   autoUpdater.on('update-not-available', () => {
     log.info('No updates available.');
-    startApp(); // Start the app if no updates
+    if (!appStarted) {
+      appStarted = true;
+      startApp();  // Start the app if no updates
+    }
   });
 
   autoUpdater.on('error', (error) => {
     log.error(`Error checking for updates: ${error.message}`);
-    startApp(); // Start the app even if update check failed
+    if (!appStarted) {
+      appStarted = true;
+      startApp();  // Start the app even if update check failed
+    }
   });
 
   autoUpdater.on('update-downloaded', async () => {
@@ -365,13 +373,14 @@ function checkForUpdates() {
     autoUpdater.quitAndInstall();
   });
 
-  // Fallback: If no update mechanism is working or triggered, start the app.
+  // Fallback: If no update mechanism is triggered, start the app after 5 seconds
   setTimeout(() => {
-    if (!isUpdateInProgress) {
+    if (!isUpdateInProgress && !appStarted) {
       log.info('No update in progress. Starting the app...');
+      appStarted = true;
       startApp();
     }
-  }, 5000); // Start app if no update is detected after 5 seconds
+  }, 5000);  // Start app if no update is detected after 5 seconds
 }
 
 
