@@ -42,18 +42,10 @@ jobs:
       - name: Install Node.js dependencies
         run: npm ci
 
-      - name: Set Firebase Credentials
-        run: echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
-
-      - name: Verify Firebase Credentials File
+      - name: Create Firebase credentials file from GitHub secret
         run: |
-          if (-Not (Test-Path -Path "./firebase-credentials.json")) {
-            Write-Host "firebase-credentials.json file not found!"
-            exit 1
-          } else {
-            Write-Host "firebase-credentials.json file created successfully."
-          }
-        shell: pwsh
+          echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
+        shell: bash
 
       - name: Check for Python environment
         run: |
@@ -86,26 +78,14 @@ jobs:
           npm run electron:build -- --win
         shell: bash
 
-      - name: Verify Firebase Credentials File After Packaging
-        run: |
-          if (-Not (Test-Path -Path "./dist/firebase-credentials.json")) {
-            Write-Host "firebase-credentials.json not found after packaging!"
-            exit 1
-          } else {
-            Write-Host "firebase-credentials.json successfully included after packaging."
-          }
-        shell: pwsh
-
-
-
       - name: Upload Release Assets (Windows)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.174.exe
-          asset_name: associated-pension-automation-hub-1.0.174.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.175.exe
+          asset_name: associated-pension-automation-hub-1.0.175.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets

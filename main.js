@@ -16,14 +16,26 @@ let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
-// Firebase setup
-const firebaseCredentialsPath = path.join(__dirname, 'firebase-credentials.json');
+// Define the path to the Firebase credentials file
+const serviceAccountPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'firebase-credentials.json')  // When the app is packaged
+  : path.join(__dirname, 'firebase-credentials.json');              // During development
 
-if (!fs.existsSync(firebaseCredentialsPath)) {
-  throw new Error('Firebase credentials file not found.');
+let serviceAccount = null;
+
+try {
+  if (fs.existsSync(serviceAccountPath)) {
+    serviceAccount = require(serviceAccountPath);
+    log.info('Firebase credentials loaded successfully.');
+  } else {
+    log.error('Firebase credentials file not found.');
+    app.quit();
+  }
+} catch (error) {
+  log.error('Error loading Firebase credentials:', error);
+  app.quit();
 }
 
-const serviceAccount = require(firebaseCredentialsPath);
 
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
