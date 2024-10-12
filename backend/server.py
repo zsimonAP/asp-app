@@ -78,6 +78,19 @@ def shutdown():
     func()
     return 'Server shutting down...', 200
 
+@app.route('/list-folders', methods=['GET'])
+def list_folders():
+    try:
+        # Assuming folders are subdirectories in SCRIPTS_DIR
+        folders = [f for f in os.listdir(SCRIPTS_DIR) if os.path.isdir(os.path.join(SCRIPTS_DIR, f))]
+        if not folders:
+            return jsonify({"folders": []}), 200
+        return jsonify({"folders": folders}), 200
+    except Exception as e:
+        logging.error(f"Error listing folders: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 async def handler(websocket, path):
     try:
         script_name = await websocket.recv()
