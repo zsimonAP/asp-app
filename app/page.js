@@ -223,10 +223,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* White line separating instructions and "Folders" */}
           <hr className="border-t-2 border-white my-6" />
 
-          {/* New title "Folders" */}
           <div className="text-center text-white mb-4">
             <h2 className="text-2xl font-bold">Folders</h2>
           </div>
@@ -262,7 +260,6 @@ export default function Home() {
                       className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
                       onClick={() => runScript(script)}
                     >
-                      {/* Display the formatted script name */}
                       {script.replace(/_/g, ' ').replace('.py', '')}
                     </button>
                   ))}
@@ -279,12 +276,12 @@ export default function Home() {
                 <div className="flex mb-4" key={index}>
                   <input
                     type="text"
-                    placeholder={field.placeholder} // Set placeholder for the input field
-                    value={field.value} // Set value for the input field
-                    onChange={(e) => handleInputChange(index, e.target.value)} // Handle changes
+                    placeholder={field.placeholder}
+                    value={field.value}
+                    onChange={(e) => handleInputChange(index, e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        handleInputSubmit(); // Call the submit function when Enter is pressed
+                        handleInputSubmit();
                       }
                     }}
                     className="border border-gray-300 p-2 rounded-l-lg flex-grow"
@@ -305,26 +302,21 @@ export default function Home() {
               {fileInputFields.map((field, index) => (
                 <div key={index} className="flex flex-col mb-4">
                   <div className="flex items-center">
-                    {/* Choose File Button */}
                     <label className="bg-white hover:bg-blue-700 text-blue-600 px-4 py-2 rounded-lg cursor-pointer mr-4">
                       <input
                         type="file"
                         accept=".csv"
                         onChange={(e) => handleFileChange(index, e.target.files[0])}
-                        className="hidden" // Hide the default file input
+                        className="hidden"
                       />
                       Upload File
                     </label>
-
-                    {/* File Name Display Box */}
                     <div className="rounded-lg border-2 border-white p-2 bg-blue-600 flex-grow">
                       <span className="text-white">
                         {field.file ? field.file.name : 'No file selected'}
                       </span>
                     </div>
                   </div>
-
-                  {/* Conditionally Render Submit File Button if a file is selected */}
                   {field.file && (
                     <button
                       onClick={handleFileSubmit}

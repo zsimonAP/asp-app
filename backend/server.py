@@ -90,7 +90,6 @@ def list_folders():
         logging.error(f"Error listing folders: {e}")
         return jsonify({"error": str(e)}), 500
 
-
 async def handler(websocket, path):
     try:
         script_name = await websocket.recv()

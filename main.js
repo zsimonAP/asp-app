@@ -14,7 +14,6 @@ autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
 
-let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
@@ -38,7 +37,6 @@ try {
   app.quit();
 }
 
-
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
@@ -46,73 +44,53 @@ firebaseAdmin.initializeApp({
 
 const bucket = firebaseAdmin.storage().bucket();
 
-// Function to list folders and scripts
-async function listFoldersAndFiles() {
+// Function to list only folders from Firebase Storage
+async function listFolders() {
   try {
     const [files] = await bucket.getFiles();
     const folderNames = new Set();
-    const folderContent = {};
 
     files.forEach((file) => {
-      const pathSegments = file.name.split('/');
-      const folderName = pathSegments[0]; // Extract folder name
-      const fileName = pathSegments[pathSegments.length - 1];
-
-      if (!folderNames.has(folderName)) {
-        folderNames.add(folderName);
-        folderContent[folderName] = []; // Initialize folder array
-      }
-
-      if (fileName.endsWith('.py')) {
-        folderContent[folderName].push(fileName); // Add Python script to folder
-      }
+      const folderName = file.name.split('/')[0]; // Extract the folder name from the path
+      folderNames.add(folderName);
     });
 
-    return { folderNames: Array.from(folderNames), folderContent };
+    return Array.from(folderNames);
   } catch (error) {
-    log.error('Error listing folders and files:', error);
+    log.error('Error listing folders:', error);
     throw error;
   }
 }
 
+// Function to download Python files from a specific folder
 async function downloadPythonFiles(folderName) {
   const localAppDataPath = process.env.LOCALAPPDATA;
-  // Ensure the destination matches what the server.py is using
-  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
+  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts', folderName);
 
   if (!fs.existsSync(destinationDir)) {
     fs.mkdirSync(destinationDir, { recursive: true });
   }
 
-  const { folderContent } = await listFoldersAndFiles();
-  const filesToDownload = folderContent[folderName];
+  const [files] = await bucket.getFiles({ prefix: folderName });
 
-  if (!filesToDownload || filesToDownload.length === 0) {
-    log.info(`No files to download from folder: ${folderName}`);
-    return;
-  }
-
-  const downloadPromises = filesToDownload.map((file) => {
-    const destinationPath = path.join(destinationDir, file);
+  const downloadPromises = files.map((file) => {
+    const fileName = file.name.split('/').pop(); // Get the actual file name
+    const destinationPath = path.join(destinationDir, fileName);
 
     if (fs.existsSync(destinationPath)) {
-      log.info(`File already exists: ${file}. Skipping download.`);
+      log.info(`File already exists: ${fileName}. Skipping download.`);
       return Promise.resolve();
     }
 
-    log.info(`Downloading ${file} to ${destinationPath}`);
+    log.info(`Downloading ${fileName} to ${destinationPath}`);
     return new Promise((resolve, reject) => {
-      const fileStream = bucket
-        .file(`${folderName}/${file}`)
-        .createReadStream()
-        .pipe(fs.createWriteStream(destinationPath));
-
+      const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
       fileStream.on('finish', () => {
-        log.info(`Downloaded: ${file}`);
+        log.info(`Downloaded: ${fileName}`);
         resolve();
       });
       fileStream.on('error', (err) => {
-        log.error(`Failed to download ${file}: ${err.message}`);
+        log.error(`Failed to download ${fileName}: ${err.message}`);
         reject(err);
       });
     });
@@ -131,24 +109,13 @@ ipcMain.handle('download-files-from-folder', async (event, folderName) => {
   }
 });
 
-
 ipcMain.handle('list-folders', async () => {
   try {
-    const { folderNames } = await listFoldersAndFiles();
+    const folderNames = await listFolders();
     return { folders: folderNames };
   } catch (error) {
     log.error('Failed to list folders:', error);
     return { error: 'Failed to list folders' };
-  }
-});
-
-ipcMain.handle('list-scripts', async (event, folderName) => {
-  try {
-    const { folderContent } = await listFoldersAndFiles();
-    return { scripts: folderContent[folderName] || [] };
-  } catch (error) {
-    log.error('Failed to list scripts for folder:', error);
-    return { error: 'Failed to list scripts' };
   }
 });
 
