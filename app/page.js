@@ -39,7 +39,7 @@ export default function Home() {
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
-    };
+    };    
     fetchScripts();
 
     const fetchWebSocketPort = async () => {

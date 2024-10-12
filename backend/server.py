@@ -18,7 +18,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Ensure the scripts directory path is correct
-SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), 'scripts')
+SCRIPTS_DIR = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'backend', 'scripts')
 CONFIG_PATH = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'websocket_port.json')
 
 # Ensure the directory exists
