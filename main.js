@@ -45,7 +45,8 @@ firebaseAdmin.initializeApp({
 const bucket = firebaseAdmin.storage().bucket();
 
 async function downloadPythonFiles() {
-  const destinationDir = path.join(__dirname, 'backend', 'scripts');
+  // Use a writable directory, such as the app's userData directory
+  const destinationDir = path.join(app.getPath('userData'), 'backend', 'scripts');
   
   if (!fs.existsSync(destinationDir)) {
     fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
@@ -54,14 +55,12 @@ async function downloadPythonFiles() {
   log.info('Listing files in Firebase Storage bucket...');
   
   try {
-    // Get list of files from Firebase Storage bucket
     const [files] = await bucket.getFiles();
 
     const firebaseFileNames = files
       .filter(file => file.name.endsWith('.py'))  // Filter Python files
       .map(file => file.name.split('/').pop());
 
-    // Check for local files that are not in Firebase and delete them
     const localFiles = fs.readdirSync(destinationDir).filter(file => file.endsWith('.py'));
 
     const filesToDelete = localFiles.filter(localFile => !firebaseFileNames.includes(localFile));
@@ -74,19 +73,17 @@ async function downloadPythonFiles() {
     log.info('Local files not in Firebase have been deleted.');
 
     const downloadPromises = files
-      .filter(file => file.name.endsWith('.py'))  // Filter Python files again for downloading
+      .filter(file => file.name.endsWith('.py'))
       .map(file => {
         const destinationPath = path.join(destinationDir, file.name.split('/').pop());
         
-        // Check if the file already exists
         if (fs.existsSync(destinationPath)) {
           log.info(`File already exists: ${file.name}. Skipping download.`);
-          return Promise.resolve();  // Skip this file if it exists
+          return Promise.resolve();
         }
 
         log.info(`Downloading ${file.name} to ${destinationPath}`);
-        
-        // Download each Python file if it doesn't exist
+
         return new Promise((resolve, reject) => {
           const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
           fileStream.on('finish', () => {
@@ -100,7 +97,6 @@ async function downloadPythonFiles() {
         });
       });
 
-    // Wait for all files to be downloaded
     await Promise.all(downloadPromises);
     log.info('All Python files downloaded successfully.');
   } catch (error) {
@@ -108,6 +104,7 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
+
 
 
 
