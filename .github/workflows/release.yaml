@@ -44,8 +44,18 @@ jobs:
 
       - name: Create Firebase credentials file from GitHub secret
         run: |
-          echo "${{ secrets.FIREBASE_CREDENTIALS }}" > firebase-credentials.json
-        shell: bash
+          $firebaseCreds = @"
+          ${{ secrets.FIREBASE_CREDENTIALS }}
+          "@
+          if ([string]::IsNullOrWhiteSpace($firebaseCreds)) {
+            Write-Error "Firebase credentials secret is empty or missing"
+            exit 1
+          }
+
+          $firebaseCreds = $firebaseCreds -replace "`n", "`r`n"
+          Set-Content -Path "firebase-credentials.json" -Value $firebaseCreds
+        shell: pwsh
+
 
       - name: Check for Python environment
         run: |
@@ -84,8 +94,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.175.exe
-          asset_name: associated-pension-automation-hub-1.0.175.exe
+          asset_path: dist\associated-pension-automation-hub-1.0.176.exe
+          asset_name: associated-pension-automation-hub-1.0.176.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
