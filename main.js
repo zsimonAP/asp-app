@@ -1,5 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const { createServer } = require('http');
+const next = require('next');
 const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
