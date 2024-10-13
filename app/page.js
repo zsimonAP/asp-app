@@ -5,7 +5,6 @@ import axios from 'axios';
 
 export default function Home() {
   const [scripts, setScripts] = useState([]);
-  const [currentFolder, setCurrentFolder] = useState(''); // Keep track of the current folder
   const [output, setOutput] = useState(''); // Store progressively updated output
   const [error, setError] = useState('');
   const [inputFields, setInputFields] = useState([]); // Store multiple input fields
@@ -40,7 +39,7 @@ export default function Home() {
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
-    };
+    };    
     fetchScripts();
 
     const fetchWebSocketPort = async () => {
@@ -87,7 +86,9 @@ export default function Home() {
       fileReader.readAsText(field.file);  // Ensure reading file as text (CSV)
     });
     setShowFileInputFields(false);
-  };
+};
+
+  
 
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
@@ -106,7 +107,7 @@ export default function Home() {
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
 
     ws.onopen = () => {
-      ws.send(script); // Send the full script path including folder
+      ws.send(script);
     };
 
     ws.onmessage = (event) => {
@@ -160,62 +161,6 @@ export default function Home() {
     setWebsocket(ws);
   };
 
-  // Function to handle folder navigation
-  const openFolder = (folder) => {
-    setCurrentFolder(folder); // Set the folder to navigate into
-  };
-
-  // Function to go back to the main directory
-  const goBack = () => {
-    setCurrentFolder(''); // Reset the folder to go back
-  };
-
-  const renderScriptButtons = () => {
-    if (currentFolder) {
-      // Show the files inside the current folder
-      const folderScripts = scripts.filter((script) => script.startsWith(currentFolder + '/'));
-
-      return (
-        <>
-          <button
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md mb-4"
-            onClick={goBack}
-          >
-            Back to Folders
-          </button>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {folderScripts.map((script) => (
-              <button
-                key={script}
-                className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                onClick={() => runScript(script)}
-              >
-                {script.replace(currentFolder + '/', '').replace(/_/g, ' ').replace('.py', '')}
-              </button>
-            ))}
-          </div>
-        </>
-      );
-    } else {
-      // Show the folders
-      const folders = Array.from(new Set(scripts.map((script) => script.split('/')[0])));
-
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {folders.map((folder) => (
-            <button
-              key={folder}
-              className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-              onClick={() => openFolder(folder)}
-            >
-              {folder}
-            </button>
-          ))}
-        </div>
-      );
-    }
-  };
-
   return (
     <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
       {updateMessage ? (
@@ -228,6 +173,39 @@ export default function Home() {
             <h1 className="text-3xl font-bold mb-6">Associated Pension Automation Hub</h1>
           </div>
 
+          <div className="text-left text-white">
+            {/* Directions for running scripts */}
+            <div className="bg-gray-100 text-blue-900 p-4 rounded-lg shadow-inner">
+              <h2 className="text-xl font-semibold mb-2">Instructions for Running Scripts:</h2>
+              <ol className="list-decimal list-inside">
+                <li className="mb-2">
+                  <strong>Select a Script</strong>: Click on the button corresponding to the script you want to run.
+                </li>
+                <li className="mb-2">
+                  <strong>Provide Input</strong>: If required, an input field will appear. Type your response in the field and press <strong>Submit</strong>.
+                </li>
+                <li className="mb-2">
+                  <strong>View Output</strong>: The output of the script will be displayed below the script buttons where you can follow along with its progress.
+                </li>
+                <li className="mb-2">
+                  <strong>Running Scripts</strong>: Only one script can be run at a time.
+                </li>
+                <li className="mb-2">
+                  <strong>Handling Errors</strong>:
+                  <ul className="list-disc list-inside ml-4">
+                    <li>If an error occurs, wait for the output section to disappear before trying again.</li>
+                    <li>Try running the script up to <strong>three times</strong>.</li>
+                    <li>If the issue persists, please contact <strong>Zach Simon</strong> for assistance:</li>
+                    <ul className="list-none ml-4">
+                      <li><strong>Email</strong>: zsimon@associatedpension.com</li>
+                      <li><strong>Phone</strong>: 631-223-9746</li>
+                    </ul>
+                  </ul>
+                </li>
+              </ol>
+            </div>
+          </div>
+
           {/* White line separating instructions and "Scripts" */}
           <hr className="border-t-2 border-white my-6" />
 
@@ -236,26 +214,35 @@ export default function Home() {
             <h2 className="text-2xl font-bold">Scripts</h2>
           </div>
 
-          {/* Render script buttons or folder buttons */}
           {scripts.length > 0 ? (
-            renderScriptButtons()
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {scripts.map((script) => (
+                <button
+                  key={script}
+                  className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                  onClick={() => runScript(script)}
+                >
+                  {/* Display the formatted script name */}
+                  {script.replace(/_/g, ' ').replace('.py', '')}
+                </button>
+              ))}
+            </div>
           ) : (
             <p className="text-gray-200">No scripts found.</p>
           )}
-
-          {/* Input and File submission fields */}
+          
           {showInputFields && (
             <div className="mt-6">
               {inputFields.map((field, index) => (
                 <div className="flex mb-4" key={index}>
                   <input
                     type="text"
-                    placeholder={field.placeholder}
-                    value={field.value}
-                    onChange={(e) => handleInputChange(index, e.target.value)}
+                    placeholder={field.placeholder}  // Set placeholder for the input field
+                    value={field.value}  // Set value for the input field
+                    onChange={(e) => handleInputChange(index, e.target.value)}  // Handle changes
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        handleInputSubmit();
+                        handleInputSubmit(); // Call the submit function when Enter is pressed
                       }
                     }}
                     className="border border-gray-300 p-2 rounded-l-lg flex-grow"
@@ -276,15 +263,18 @@ export default function Home() {
               {fileInputFields.map((field, index) => (
                 <div key={index} className="flex flex-col mb-4">
                   <div className="flex items-center">
+                    {/* Choose File Button */}
                     <label className="bg-white hover:bg-blue-700 text-blue-600 px-4 py-2 rounded-lg cursor-pointer mr-4">
                       <input
                         type="file"
                         accept=".csv"
                         onChange={(e) => handleFileChange(index, e.target.files[0])}
-                        className="hidden"
+                        className="hidden" // Hide the default file input
                       />
                       Upload File
                     </label>
+
+                    {/* File Name Display Box */}
                     <div className="rounded-lg border-2 border-white p-2 bg-blue-600 flex-grow">
                       <span className="text-white">
                         {field.file ? field.file.name : "No file selected"}
@@ -292,6 +282,7 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* Conditionally Render Submit File Button if a file is selected */}
                   {field.file && (
                     <button
                       onClick={handleFileSubmit}
@@ -304,6 +295,8 @@ export default function Home() {
               ))}
             </div>
           )}
+
+
 
           {output && (
             <div className="mt-6 p-4 bg-blue-100 text-blue-900 rounded-lg shadow-inner">

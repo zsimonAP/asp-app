@@ -39,20 +39,10 @@ logging.info(f"sys.path: {sys.path}")
 logging.info(f"Environment Variables: {json.dumps(dict(os.environ), indent=2)}")
 logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 
-# Helper function to list all Python scripts recursively in folders
-def list_python_files(directory):
-    scripts = []
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.py'):
-                relative_path = os.path.relpath(os.path.join(root, file), SCRIPTS_DIR)
-                scripts.append(relative_path)
-    return scripts
-
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
     try:
-        scripts = list_python_files(SCRIPTS_DIR)
+        scripts = [f for f in os.listdir(SCRIPTS_DIR) if f.endswith('.py')]
         return jsonify({"scripts": scripts}), 200
     except Exception as e:
         logging.error(f"Error listing scripts: {e}")
