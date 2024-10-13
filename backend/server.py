@@ -39,22 +39,20 @@ logging.info(f"sys.path: {sys.path}")
 logging.info(f"Environment Variables: {json.dumps(dict(os.environ), indent=2)}")
 logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 
+# Helper function to list all Python scripts recursively in folders
+def list_python_files(directory):
+    scripts = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.py'):
+                relative_path = os.path.relpath(os.path.join(root, file), SCRIPTS_DIR)
+                scripts.append(relative_path)
+    return scripts
+
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
     try:
-        # Get folder from query params
-        folder_name = request.args.get('folder')
-        
-        if not folder_name:
-            return jsonify({"error": "Folder parameter is required"}), 400
-        
-        folder_path = os.path.join(SCRIPTS_DIR, folder_name)
-        
-        if not os.path.exists(folder_path):
-            return jsonify({"error": f"Folder {folder_name} does not exist"}), 404
-
-        # List only Python files in the selected folder
-        scripts = [f for f in os.listdir(folder_path) if f.endswith('.py')]
+        scripts = list_python_files(SCRIPTS_DIR)
         return jsonify({"scripts": scripts}), 200
     except Exception as e:
         logging.error(f"Error listing scripts: {e}")
@@ -78,22 +76,10 @@ def shutdown():
     func()
     return 'Server shutting down...', 200
 
-@app.route('/list-folders', methods=['GET'])
-def list_folders():
-    try:
-        # Assuming folders are subdirectories in SCRIPTS_DIR
-        folders = [f for f in os.listdir(SCRIPTS_DIR) if os.path.isdir(os.path.join(SCRIPTS_DIR, f))]
-        if not folders:
-            return jsonify({"folders": []}), 200
-        return jsonify({"folders": folders}), 200
-    except Exception as e:
-        logging.error(f"Error listing folders: {e}")
-        return jsonify({"error": str(e)}), 500
-
 async def handler(websocket, path):
     try:
         script_name = await websocket.recv()
-        script_path = os.path.join(SCRIPTS_DIR, script_name)  # Ensure path includes folder
+        script_path = os.path.join(SCRIPTS_DIR, script_name)
 
         if not os.path.exists(script_path):
             raise FileNotFoundError(f"Script not found: {script_path}")

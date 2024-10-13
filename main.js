@@ -14,6 +14,7 @@ autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 log.info('App starting...');
 
+let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 
@@ -44,80 +45,70 @@ firebaseAdmin.initializeApp({
 
 const bucket = firebaseAdmin.storage().bucket();
 
-// Function to list only folders from Firebase Storage
-async function listFolders() {
-  try {
-    const [files] = await bucket.getFiles();
-    const folderNames = new Set();
-
-    files.forEach((file) => {
-      const folderName = file.name.split('/')[0]; // Extract the folder name from the path
-      folderNames.add(folderName);
-    });
-
-    return Array.from(folderNames);
-  } catch (error) {
-    log.error('Error listing folders:', error);
-    throw error;
-  }
-}
-
-// Function to download Python files from a specific folder
-async function downloadPythonFiles(folderName) {
+async function downloadPythonFiles() {
+  // Use a writable directory, such as the app's userData directory
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
 
   if (!fs.existsSync(destinationDir)) {
-    fs.mkdirSync(destinationDir, { recursive: true });
+    fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
   }
 
-  const [files] = await bucket.getFiles({ prefix: folderName });
+  log.info('Listing folders and files in Firebase Storage bucket...');
+  
+  try {
+    const [files] = await bucket.getFiles();
 
-  const downloadPromises = files.map((file) => {
-    const fileName = file.name.split('/').pop(); // Get the actual file name
-    const destinationPath = path.join(destinationDir, fileName);
+    // Filter out non-python files and map the folder structure
+    const folderFilesMap = files.reduce((acc, file) => {
+      const parts = file.name.split('/');
+      const folderName = parts[0];
+      const fileName = parts.slice(1).join('/');
 
-    if (fs.existsSync(destinationPath)) {
-      log.info(`File already exists: ${fileName}. Skipping download.`);
-      return Promise.resolve();
+      if (fileName.endsWith('.py')) {
+        if (!acc[folderName]) acc[folderName] = [];
+        acc[folderName].push(file);
+      }
+      return acc;
+    }, {});
+
+    for (const [folderName, folderFiles] of Object.entries(folderFilesMap)) {
+      const folderPath = path.join(destinationDir, folderName);
+
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
+
+      for (const file of folderFiles) {
+        const destinationPath = path.join(folderPath, file.name.split('/').pop());
+
+        if (fs.existsSync(destinationPath)) {
+          log.info(`File already exists: ${file.name}. Skipping download.`);
+          continue;
+        }
+
+        log.info(`Downloading ${file.name} to ${destinationPath}`);
+
+        await new Promise((resolve, reject) => {
+          const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
+          fileStream.on('finish', () => {
+            log.info(`Downloaded: ${file.name}`);
+            resolve();
+          });
+          fileStream.on('error', (err) => {
+            log.error(`Failed to download ${file.name}: ${err.message}`);
+            reject(err);
+          });
+        });
+      }
     }
 
-    log.info(`Downloading ${fileName} to ${destinationPath}`);
-    return new Promise((resolve, reject) => {
-      const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
-      fileStream.on('finish', () => {
-        log.info(`Downloaded: ${fileName}`);
-        resolve();
-      });
-      fileStream.on('error', (err) => {
-        log.error(`Failed to download ${fileName}: ${err.message}`);
-        reject(err);
-      });
-    });
-  });
-
-  await Promise.all(downloadPromises);
+    log.info('All Python files downloaded successfully.');
+  } catch (error) {
+    log.error(`Error listing or downloading files from Firebase Storage: ${error.message}`);
+    throw error;
+  }
 }
-
-ipcMain.handle('download-files-from-folder', async (event, folderName) => {
-  try {
-    await downloadPythonFiles(folderName);
-    return { success: true, message: `Files downloaded from folder: ${folderName}` };
-  } catch (error) {
-    log.error(`Failed to download files from folder: ${folderName}, Error: ${error.message}`);
-    return { success: false, error: `Failed to download files from folder: ${folderName}` };
-  }
-});
-
-ipcMain.handle('list-folders', async () => {
-  try {
-    const folderNames = await listFolders();
-    return { folders: folderNames };
-  } catch (error) {
-    log.error('Failed to list folders:', error);
-    return { error: 'Failed to list folders' };
-  }
-});
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
