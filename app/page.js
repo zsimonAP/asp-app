@@ -38,6 +38,16 @@ export default function Home() {
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
     }
+    const fetchFolders = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/list-folders');
+        console.log('Folder structure:', response.data); // Log folder structure
+        setFolderStructure(response.data); // Set the folder structure from Flask
+      } catch (err) {
+        setError('Failed to fetch folder structure: ' + err.message);
+      }
+    };
+    fetchFolders();
 
     const fetchScripts = async () => {
       try {

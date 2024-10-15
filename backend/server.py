@@ -39,6 +39,23 @@ logging.info(f"sys.path: {sys.path}")
 logging.info(f"Environment Variables: {json.dumps(dict(os.environ), indent=2)}")
 logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 
+
+@app.route('/list-folders', methods=['GET'])
+def list_folders():
+    try:
+        folder_structure = {}
+        # Walk through the scripts directory and collect folder and file info
+        for root, dirs, files in os.walk(SCRIPTS_DIR):
+            relative_root = os.path.relpath(root, SCRIPTS_DIR)
+            if relative_root == ".":
+                relative_root = ""
+            folder_structure[relative_root] = [file for file in files if file.endswith('.py')]
+        return jsonify(folder_structure), 200
+    except Exception as e:
+        logging.error(f"Error listing folders: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
     try:
@@ -50,6 +67,7 @@ def list_scripts():
         logging.error(f"Error listing scripts: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/get-websocket-port', methods=['GET'])
 def get_websocket_port():
     try:
@@ -60,6 +78,7 @@ def get_websocket_port():
         logging.error(f"Error getting WebSocket port: {e}")
         return jsonify({"error": str(e)}), 500
 
+
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -67,6 +86,7 @@ def shutdown():
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
     return 'Server shutting down...', 200
+
 
 async def handler(websocket, path):
     try:
@@ -130,6 +150,7 @@ def write_port_to_file(port):
         json.dump({"port": port}, file)
     logging.info(f"WebSocket port {port} written to {CONFIG_PATH}")
 
+
 def start_websocket_server():
     asyncio.set_event_loop(asyncio.new_event_loop())
     loop = asyncio.get_event_loop()
@@ -139,6 +160,7 @@ def start_websocket_server():
     write_port_to_file(port)
     logging.info(f"WebSocket server started on port {port}")
     loop.run_forever()
+
 
 if __name__ == "__main__":
     # Ensure only one WebSocket server instance
