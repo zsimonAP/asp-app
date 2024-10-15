@@ -46,42 +46,6 @@ firebaseAdmin.initializeApp({
 
 const bucket = firebaseAdmin.storage().bucket();
 
-async function listFoldersAndScripts() {
-  try {
-    const [files] = await bucket.getFiles();
-    
-    const folders = {};
-    
-    // Iterate through all files in the bucket
-    files.forEach(file => {
-      const [folder, script] = file.name.split('/');
-      
-      if (folder && script && script.endsWith('.py')) {
-        if (!folders[folder]) {
-          folders[folder] = [];
-        }
-        folders[folder].push(script);  // Add script to its corresponding folder
-      }
-    });
-    
-    return folders;
-  } catch (error) {
-    log.error(`Error listing files from Firebase Storage: ${error.message}`);
-    throw error;
-  }
-}
-
-// Expose this function as an API for the frontend
-ipcMain.handle('list-folders-and-scripts', async () => {
-  try {
-    const folders = await listFoldersAndScripts();
-    return { success: true, folders };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-
 async function downloadPythonFiles() {
   // Use a writable directory, such as the app's userData directory
   const localAppDataPath = process.env.LOCALAPPDATA;

@@ -13,8 +13,6 @@ export default function Home() {
   const [showFileInputFields, setShowFileInputFields] = useState(false);
   const [selectedScript, setSelectedScript] = useState(null);
   const [websocketPort, setWebsocketPort] = useState(null);
-  const [folders, setFolders] = useState({});
-  const [selectedFolder, setSelectedFolder] = useState(null);
   const [websocket, setWebsocket] = useState(null);
   const [updateMessage, setUpdateMessage] = useState('');
 
@@ -33,23 +31,6 @@ export default function Home() {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
       });
     }
-
-    // Fetch folders and scripts from Electron main process
-    const fetchFolders = async () => {
-      try {
-        const response = await ipcRenderer.invoke('list-folders-and-scripts');
-        if (response.success) {
-          setFolders(response.folders);
-        } else {
-          setError('Failed to fetch folders: ' + response.error);
-        }
-      } catch (err) {
-        setError('Failed to fetch folders: ' + err.message);
-      }
-    };
-
-    fetchFolders();
-
 
     const fetchScripts = async () => {
       try {
@@ -107,6 +88,7 @@ export default function Home() {
     setShowFileInputFields(false);
 };
 
+  
 
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
@@ -118,11 +100,6 @@ export default function Home() {
     const newFileInputFields = [...fileInputFields];
     newFileInputFields[index].file = file;
     setFileInputFields(newFileInputFields);
-  };
-
-  const handleFolderClick = (folder) => {
-    setSelectedFolder(folder);
-    setScripts(folders[folder] || []);
   };
 
   const runScript = (script) => {
@@ -232,50 +209,27 @@ export default function Home() {
           {/* White line separating instructions and "Scripts" */}
           <hr className="border-t-2 border-white my-6" />
 
+          {/* New title "Scripts" */}
           <div className="text-center text-white mb-4">
-            <h2 className="text-2xl font-bold">Folders</h2>
+            <h2 className="text-2xl font-bold">Scripts</h2>
           </div>
 
-          {Object.keys(folders).length > 0 ? (
+          {scripts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.keys(folders).map((folder) => (
+              {scripts.map((script) => (
                 <button
-                  key={folder}
+                  key={script}
                   className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                  onClick={() => handleFolderClick(folder)}
+                  onClick={() => runScript(script)}
                 >
-                  {folder}
+                  {/* Display the formatted script name */}
+                  {script.replace(/_/g, ' ').replace('.py', '')}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-gray-200">No folders found.</p>
+            <p className="text-gray-200">No scripts found.</p>
           )}
-
-          {selectedFolder && (
-            <>
-              <div className="text-center text-white mt-8 mb-4">
-                <h2 className="text-2xl font-bold">{selectedFolder} Scripts</h2>
-              </div>
-
-              {scripts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {scripts.map((script) => (
-                    <button
-                      key={script}
-                      className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                      onClick={() => runScript(`${selectedFolder}/${script}`)}
-                    >
-                      {script.replace(/_/g, ' ').replace('.py', '')}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-200">No scripts found in this folder.</p>
-              )}
-            </>
-          )}
-
           
           {showInputFields && (
             <div className="mt-6">
