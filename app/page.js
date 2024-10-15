@@ -4,19 +4,19 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function Home() {
-  const [scripts, setScripts] = useState([]);
+  const [scripts, setScripts] = useState([]); // To hold scripts (if needed)
   const [output, setOutput] = useState(''); // Store progressively updated output
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Store error messages
   const [inputFields, setInputFields] = useState([]); // Store multiple input fields
   const [fileInputFields, setFileInputFields] = useState([]); // Store multiple file input fields
-  const [showInputFields, setShowInputFields] = useState(false);
-  const [showFileInputFields, setShowFileInputFields] = useState(false);
-  const [selectedScript, setSelectedScript] = useState(null);
-  const [websocketPort, setWebsocketPort] = useState(null);
-  const [websocket, setWebsocket] = useState(null);
-  const [updateMessage, setUpdateMessage] = useState('');
-  const [folderStructure, setFolderStructure] = useState({});
-  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [showInputFields, setShowInputFields] = useState(false); // To show input fields when necessary
+  const [showFileInputFields, setShowFileInputFields] = useState(false); // To show file input fields
+  const [selectedScript, setSelectedScript] = useState(null); // Currently selected script
+  const [websocketPort, setWebsocketPort] = useState(null); // Holds WebSocket port
+  const [websocket, setWebsocket] = useState(null); // Active WebSocket connection
+  const [updateMessage, setUpdateMessage] = useState(''); // Store update messages
+  const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
+  const [selectedFolder, setSelectedFolder] = useState(null); // Currently selected folder
 
   useEffect(() => {
     let ipcRenderer;
@@ -71,16 +71,19 @@ export default function Home() {
     };
   }, [websocket]);
 
+  // Handle folder click to display scripts within that folder
   const handleFolderClick = (folder) => {
     console.log(`User clicked on folder: ${folder}`); // Log when a folder is clicked
     setSelectedFolder(folder);  // Set the selected folder when clicked
   };
 
+  // Handle script click
   const handleScriptClick = (script) => {
     console.log(`Running script: ${script}`); // Log when a script is clicked to be run
     // Add your script execution logic here
   };
 
+  // Handle input submit
   const handleInputSubmit = () => {
     if (!websocket) return;
     inputFields.forEach((field) => {
@@ -89,6 +92,7 @@ export default function Home() {
     setShowInputFields(false);
   };
 
+  // Handle file submit
   const handleFileSubmit = () => {
     if (!websocket) return;
 
@@ -105,18 +109,21 @@ export default function Home() {
     setShowFileInputFields(false);
   };
 
+  // Handle input change for text fields
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
     newInputFields[index].value = value;
     setInputFields(newInputFields); // Update state for specific input field
   };
 
+  // Handle file change
   const handleFileChange = (index, file) => {
     const newFileInputFields = [...fileInputFields];
     newFileInputFields[index].file = file;
     setFileInputFields(newFileInputFields);
   };
 
+  // Run a script
   const runScript = (script) => {
     setSelectedScript(script);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
