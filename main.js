@@ -38,6 +38,7 @@ try {
   app.quit();
 }
 
+
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
