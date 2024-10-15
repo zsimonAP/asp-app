@@ -90,8 +90,9 @@ export default function Home() {
   // Handle script click
   const handleScriptClick = (script) => {
     console.log(`Running script: ${script}`); // Log when a script is clicked to be run
-    // Add your script execution logic here
+    runScript(`${selectedFolder}/${script}`);  // Send the folder and script name
   };
+
 
   // Handle input submit
   const handleInputSubmit = () => {
@@ -137,62 +138,62 @@ export default function Home() {
   const runScript = (script) => {
     setSelectedScript(script);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
-
+  
     ws.onopen = () => {
-      ws.send(script);
+      ws.send(script);  // Send the full path including folder and script
     };
-
+  
     ws.onmessage = (event) => {
       const data = event.data;
-
+  
       if (data.startsWith('WAIT_FOR_INPUT')) {
         const placeholderText = data.split(':')[1]?.trim() || '';
-
+  
         const currentInputFields = [...inputFields];
-
+  
         setInputFields([
-          ...currentInputFields, // Keep existing fields
-          { placeholder: placeholderText, value: '' }, // Add the new input field with the dynamic placeholder
+          ...currentInputFields,  // Keep existing fields
+          { placeholder: placeholderText, value: '' },  // Add new input field
         ]);
-
-        setShowInputFields(true); // Show the input fields
+  
+        setShowInputFields(true);  // Show the input fields
       } else if (data.startsWith('WAIT_FOR_FILE_INPUT')) {
         const placeholderText = data.split(':')[1]?.trim() || '';
-
+  
         const currentFileInputFields = [...fileInputFields];
-
+  
         setFileInputFields([
-          ...currentFileInputFields, // Keep existing fields
-          { placeholder: placeholderText, file: null }, // Add the new file input field
+          ...currentFileInputFields,  // Keep existing fields
+          { placeholder: placeholderText, file: null },  // Add new file input field
         ]);
-
-        setShowFileInputFields(true); // Show the file input fields
+  
+        setShowFileInputFields(true);  // Show the file input fields
       } else if (data === 'SCRIPT_COMPLETED') {
-        setShowInputFields(false); // Hide input fields when the script is done
-        setShowFileInputFields(false); // Hide file input fields when the script is done
-        setOutput(''); // Clear output after script completes
-        setInputFields([]); // Reset input fields after script completes
-        setFileInputFields([]); // Reset file input fields after script completes
+        setShowInputFields(false);
+        setShowFileInputFields(false);
+        setOutput('');  // Clear output after script completes
+        setInputFields([]);
+        setFileInputFields([]);
         setSelectedScript(null);
         ws.close();
       } else {
-        setOutput((prevOutput) => prevOutput + '\n' + data); // Append new output progressively
+        setOutput((prevOutput) => prevOutput + '\n' + data);  // Append new output progressively
       }
     };
-
+  
     ws.onerror = (event) => {
       setError('WebSocket error: ' + (event.message || 'Unknown error'));
     };
-
+  
     ws.onclose = (event) => {
       if (!event.wasClean) {
         setError('WebSocket closed unexpectedly.');
       }
     };
-
+  
     setWebsocket(ws);
   };
-
+  
   return (
     <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
       {updateMessage ? (
@@ -369,4 +370,5 @@ export default function Home() {
       )}
     </div>
   );
+
 }

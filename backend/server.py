@@ -90,7 +90,7 @@ def shutdown():
 
 async def handler(websocket, path):
     try:
-        script_name = await websocket.recv()
+        script_name = await websocket.recv()  # This will now include the folder structure
         script_path = os.path.join(SCRIPTS_DIR, script_name)
 
         if not os.path.exists(script_path):
@@ -117,17 +117,14 @@ async def handler(websocket, path):
                     process.stdin.flush()
 
                 elif "WAIT_FOR_FILE_INPUT" in output:
-                    # Receive file content from the client
                     file_content = await websocket.recv()
 
-                    # Write the file content to a temporary file
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as temp_file:
-                        temp_file.write(file_content.encode())  # Ensure content is in bytes
+                        temp_file.write(file_content.encode())
                         temp_file_path = temp_file.name
-                    
+
                     logging.info(f"Temporary file created: {temp_file_path}")
 
-                    # Pass the temp file path to the Python script
                     process.stdin.write(temp_file_path + '\n')
                     process.stdin.flush()
 
@@ -143,6 +140,7 @@ async def handler(websocket, path):
     except Exception as e:
         logging.error(f"Handler exception: {e}")
         await websocket.send(f"Exception: {str(e)}")
+
 
 
 def write_port_to_file(port):
