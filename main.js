@@ -237,25 +237,7 @@ function killPort(port) {
 }
 
 async function startApp() {
-  // Step 1: Download all Python files from Firebase before proceeding
-
-  try {
-    const folderStructure = await getFolderStructure();
-    mainWindow.webContents.send('folder-structure', folderStructure);
-  } catch (error) {
-    log.error(`Failed to retrieve folder structure: ${error.message}`);
-  }
-
-
-  try {
-    await downloadPythonFiles();
-    log.info('All Python files downloaded successfully.');
-  } catch (error) {
-    log.error(`Failed to download Python files: ${error.message}`);
-    app.quit();
-    return;
-  }
-
+  
   const nextAppPath = path.join(__dirname, '.next');
   log.info(`Checking Next.js build files at: ${nextAppPath}`);
 
@@ -281,6 +263,32 @@ async function startApp() {
       }
       log.info('> Ready on http://localhost:3000');
     });
+  // Step 1: Download all Python files from Firebase before proceeding
+
+  try {
+    const folderStructure = await getFolderStructure();
+
+    // Ensure that folder structure is sent after window is created
+    const startUrl = await waitForNextJsServer(3000);
+    createWindow(startUrl);
+
+    // Wait for the window to be ready before sending the folder structure
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('folder-structure', folderStructure);
+    });
+
+  } catch (error) {
+    log.error(`Failed to retrieve folder structure: ${error.message}`);
+  }
+
+  try {
+    await downloadPythonFiles();
+    log.info('All Python files downloaded successfully.');
+  } catch (error) {
+    log.error(`Failed to download Python files: ${error.message}`);
+    app.quit();
+    return;
+  }
 
     const appRootPath = process.resourcesPath; // Points to the resources directory
 
