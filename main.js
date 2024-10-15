@@ -51,23 +51,25 @@ async function getFolderStructure() {
   
   try {
     const [files] = await bucket.getFiles();
-    
-    // Create a folder structure
-    const folderStructure = {};
+    log.info(`Fetched ${files.length} files from Firebase.`);
 
+    const folderStructure = {};
     files.forEach((file) => {
       const filePathParts = file.name.split('/');
-      const folder = filePathParts[0]; // Top-level folder
-      const fileName = filePathParts[1]; // File inside folder
+      const folder = filePathParts[0];
+      const fileName = filePathParts.slice(1).join('/');
+      log.info(`Processing file: ${file.name} (Folder: ${folder}, File: ${fileName})`);
 
       if (fileName && fileName.endsWith('.py')) {
         if (!folderStructure[folder]) {
+          log.info(`Creating folder entry for: ${folder}`);
           folderStructure[folder] = [];
         }
         folderStructure[folder].push(fileName);
       }
     });
 
+    log.info('Folder structure created successfully.');
     return folderStructure;
   } catch (error) {
     log.error(`Error fetching folder structure: ${error.message}`);
@@ -75,64 +77,55 @@ async function getFolderStructure() {
   }
 }
 
+
 async function downloadPythonFiles() {
-  // Use a writable directory, such as the app's userData directory
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
-  
+
   if (!fs.existsSync(destinationDir)) {
-    fs.mkdirSync(destinationDir, { recursive: true });  // Create destination directory if it doesn't exist
+    log.info(`Creating destination directory: ${destinationDir}`);
+    fs.mkdirSync(destinationDir, { recursive: true });
   }
 
   log.info('Listing files in Firebase Storage bucket...');
   
   try {
     const [files] = await bucket.getFiles();
+    log.info(`Found ${files.length} files in the bucket.`);
 
-    const firebaseFileNames = files
-      .filter(file => file.name.endsWith('.py'))  // Filter Python files
-      .map(file => file.name.split('/').pop());
+    const downloadPromises = files.map(file => {
+      const destinationPath = path.join(destinationDir, file.name);
+      const destinationFolder = path.dirname(destinationPath);
 
-    const localFiles = fs.readdirSync(destinationDir).filter(file => file.endsWith('.py'));
+      if (!fs.existsSync(destinationFolder)) {
+        log.info(`Creating directory: ${destinationFolder}`);
+        fs.mkdirSync(destinationFolder, { recursive: true });
+      }
 
-    const filesToDelete = localFiles.filter(localFile => !firebaseFileNames.includes(localFile));
-    filesToDelete.forEach(fileToDelete => {
-      const filePath = path.join(destinationDir, fileToDelete);
-      fs.unlinkSync(filePath);  // Delete the file
-      log.info(`Deleted local file: ${fileToDelete}`);
-    });
+      if (fs.existsSync(destinationPath)) {
+        log.info(`File already exists: ${file.name}. Skipping download.`);
+        return Promise.resolve();
+      }
 
-    log.info('Local files not in Firebase have been deleted.');
+      log.info(`Starting download for: ${file.name} to ${destinationPath}`);
 
-    const downloadPromises = files
-      .filter(file => file.name.endsWith('.py'))
-      .map(file => {
-        const destinationPath = path.join(destinationDir, file.name.split('/').pop());
-        
-        if (fs.existsSync(destinationPath)) {
-          log.info(`File already exists: ${file.name}. Skipping download.`);
-          return Promise.resolve();
-        }
-
-        log.info(`Downloading ${file.name} to ${destinationPath}`);
-
-        return new Promise((resolve, reject) => {
-          const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
-          fileStream.on('finish', () => {
-            log.info(`Downloaded: ${file.name}`);
-            resolve();
-          });
-          fileStream.on('error', (err) => {
-            log.error(`Failed to download ${file.name}: ${err.message}`);
-            reject(err);
-          });
+      return new Promise((resolve, reject) => {
+        const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
+        fileStream.on('finish', () => {
+          log.info(`Downloaded successfully: ${file.name}`);
+          resolve();
+        });
+        fileStream.on('error', (err) => {
+          log.error(`Failed to download ${file.name}: ${err.message}`);
+          reject(err);
         });
       });
+    });
 
     await Promise.all(downloadPromises);
     log.info('All Python files downloaded successfully.');
   } catch (error) {
-    log.error(`Error listing or downloading files from Firebase Storage: ${error.message}`);
+    log.error(`Error during file download: ${error.message}`);
     throw error;
   }
 }
@@ -237,7 +230,7 @@ function killPort(port) {
 }
 
 async function startApp() {
-  
+
   const nextAppPath = path.join(__dirname, '.next');
   log.info(`Checking Next.js build files at: ${nextAppPath}`);
 
@@ -249,7 +242,6 @@ async function startApp() {
 
   try {
     const nextApp = next({ dev: false, dir: __dirname });
-
     await nextApp.prepare();
     log.info('Next.js application prepared successfully.');
 
@@ -263,31 +255,21 @@ async function startApp() {
       }
       log.info('> Ready on http://localhost:3000');
     });
-  // Step 1: Download all Python files from Firebase before proceeding
 
-  try {
     const folderStructure = await getFolderStructure();
-
-    // Ensure that folder structure is sent after window is created
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
 
-    // Wait for the window to be ready before sending the folder structure
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send('folder-structure', folderStructure);
     });
 
-  } catch (error) {
-    log.error(`Failed to retrieve folder structure: ${error.message}`);
-  }
-
-  try {
     await downloadPythonFiles();
-    log.info('All Python files downloaded successfully.');
+
+    log.info('App started successfully.');
   } catch (error) {
-    log.error(`Failed to download Python files: ${error.message}`);
+    log.error(`Failed to start the app: ${error.message}`);
     app.quit();
-    return;
   }
 
     const appRootPath = process.resourcesPath; // Points to the resources directory
@@ -373,13 +355,6 @@ async function startApp() {
     } catch (error) {
       log.error(`Failed to start Python process: ${error.message}`);
     }
-
-    const startUrl = await waitForNextJsServer(3000);
-    createWindow(startUrl);
-  } catch (error) {
-    log.error(`Failed to prepare Next.js application: ${error.message}`);
-    app.quit();
-  }
 }
 
 let appStarted = false;  // Flag to ensure app only starts once

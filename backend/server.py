@@ -42,7 +42,9 @@ logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 @app.route('/list-scripts', methods=['GET'])
 def list_scripts():
     try:
-        scripts = [f for f in os.listdir(SCRIPTS_DIR) if f.endswith('.py')]
+        scripts = []
+        for root, _, files in os.walk(SCRIPTS_DIR):
+            scripts.extend([os.path.relpath(os.path.join(root, file), SCRIPTS_DIR) for file in files if file.endswith('.py')])
         return jsonify({"scripts": scripts}), 200
     except Exception as e:
         logging.error(f"Error listing scripts: {e}")

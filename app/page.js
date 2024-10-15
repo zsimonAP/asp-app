@@ -34,6 +34,7 @@ export default function Home() {
       });
 
       ipcRenderer.on('folder-structure', (event, folderStructure) => {
+        console.log('Received folder structure:', folderStructure); // Log folder structure received
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
     }
@@ -71,15 +72,14 @@ export default function Home() {
   }, [websocket]);
 
   const handleFolderClick = (folder) => {
+    console.log(`User clicked on folder: ${folder}`); // Log when a folder is clicked
     setSelectedFolder(folder);  // Set the selected folder when clicked
   };
 
   const handleScriptClick = (script) => {
+    console.log(`Running script: ${script}`); // Log when a script is clicked to be run
     // Add your script execution logic here
-    console.log(`Running script: ${script}`);
   };
-
-
 
   const handleInputSubmit = () => {
     if (!websocket) return;
@@ -103,9 +103,7 @@ export default function Home() {
       fileReader.readAsText(field.file);  // Ensure reading file as text (CSV)
     });
     setShowFileInputFields(false);
-};
-
-  
+  };
 
   const handleInputChange = (index, value) => {
     const newInputFields = [...inputFields];
@@ -236,7 +234,10 @@ export default function Home() {
               <div className="text-center text-white mb-4">
                 <h2 className="text-2xl font-bold">{selectedFolder} Scripts</h2>
                 <button
-                  onClick={() => setSelectedFolder(null)}  // Back button to go to folder view
+                  onClick={() => {
+                    console.log('User navigated back to folders view');
+                    setSelectedFolder(null); // Log when user navigates back to the folder view
+                  }}
                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
                 >
                   Back to Folders
