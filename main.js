@@ -38,13 +38,41 @@ try {
   app.quit();
 }
 
-
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
 });
 
 const bucket = firebaseAdmin.storage().bucket();
+
+async function getFolderStructure() {
+  log.info('Fetching folder structure from Firebase Storage...');
+  
+  try {
+    const [files] = await bucket.getFiles();
+    
+    // Create a folder structure
+    const folderStructure = {};
+
+    files.forEach((file) => {
+      const filePathParts = file.name.split('/');
+      const folder = filePathParts[0]; // Top-level folder
+      const fileName = filePathParts[1]; // File inside folder
+
+      if (fileName && fileName.endsWith('.py')) {
+        if (!folderStructure[folder]) {
+          folderStructure[folder] = [];
+        }
+        folderStructure[folder].push(fileName);
+      }
+    });
+
+    return folderStructure;
+  } catch (error) {
+    log.error(`Error fetching folder structure: ${error.message}`);
+    throw error;
+  }
+}
 
 async function downloadPythonFiles() {
   // Use a writable directory, such as the app's userData directory
@@ -209,6 +237,15 @@ function killPort(port) {
 
 async function startApp() {
   // Step 1: Download all Python files from Firebase before proceeding
+
+  try {
+    const folderStructure = await getFolderStructure();
+    mainWindow.webContents.send('folder-structure', folderStructure);
+  } catch (error) {
+    log.error(`Failed to retrieve folder structure: ${error.message}`);
+  }
+
+
   try {
     await downloadPythonFiles();
     log.info('All Python files downloaded successfully.');

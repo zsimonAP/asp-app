@@ -15,6 +15,8 @@ export default function Home() {
   const [websocketPort, setWebsocketPort] = useState(null);
   const [websocket, setWebsocket] = useState(null);
   const [updateMessage, setUpdateMessage] = useState('');
+  const [folderStructure, setFolderStructure] = useState({});
+  const [selectedFolder, setSelectedFolder] = useState(null);
 
   useEffect(() => {
     let ipcRenderer;
@@ -29,6 +31,10 @@ export default function Home() {
 
       ipcRenderer.on('update-ready', () => {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
+      });
+
+      ipcRenderer.on('folder-structure', (event, folderStructure) => {
+        setFolderStructure(folderStructure);  // Store folder structure in state
       });
     }
 
@@ -63,6 +69,17 @@ export default function Home() {
       }
     };
   }, [websocket]);
+
+  const handleFolderClick = (folder) => {
+    setSelectedFolder(folder);  // Set the selected folder when clicked
+  };
+
+  const handleScriptClick = (script) => {
+    // Add your script execution logic here
+    console.log(`Running script: ${script}`);
+  };
+
+
 
   const handleInputSubmit = () => {
     if (!websocket) return;
@@ -209,28 +226,49 @@ export default function Home() {
           {/* White line separating instructions and "Scripts" */}
           <hr className="border-t-2 border-white my-6" />
 
-          {/* New title "Scripts" */}
+          {/* New title "Folders" */}
           <div className="text-center text-white mb-4">
-            <h2 className="text-2xl font-bold">Scripts</h2>
+            <h2 className="text-2xl font-bold">Folders</h2>
           </div>
 
-          {scripts.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {scripts.map((script) => (
+          {selectedFolder ? (
+            <>
+              <div className="text-center text-white mb-4">
+                <h2 className="text-2xl font-bold">{selectedFolder} Scripts</h2>
                 <button
-                  key={script}
-                  className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                  onClick={() => runScript(script)}
+                  onClick={() => setSelectedFolder(null)}  // Back button to go to folder view
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
                 >
-                  {/* Display the formatted script name */}
-                  {script.replace(/_/g, ' ').replace('.py', '')}
+                  Back to Folders
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {folderStructure[selectedFolder].map((script) => (
+                  <button
+                    key={script}
+                    className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                    onClick={() => handleScriptClick(script)}
+                  >
+                    {script.replace('.py', '')}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Object.keys(folderStructure).map((folder) => (
+                <button
+                  key={folder}
+                  className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                  onClick={() => handleFolderClick(folder)}
+                >
+                  {folder}
                 </button>
               ))}
             </div>
-          ) : (
-            <p className="text-gray-200">No scripts found.</p>
           )}
-          
+
           {showInputFields && (
             <div className="mt-6">
               {inputFields.map((field, index) => (
@@ -295,8 +333,6 @@ export default function Home() {
               ))}
             </div>
           )}
-
-
 
           {output && (
             <div className="mt-6 p-4 bg-blue-100 text-blue-900 rounded-lg shadow-inner">
