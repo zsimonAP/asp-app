@@ -41,8 +41,11 @@ export default function Home() {
     const fetchFolders = async () => {
       try {
         const response = await axios.get('http://localhost:5001/list-folders');
-        console.log('Folder structure:', response.data); // Log folder structure
-        setFolderStructure(response.data); // Set the folder structure from Flask
+        const filteredFolders = Object.fromEntries(
+          Object.entries(response.data).filter(([key]) => key.trim() !== '')
+        );
+        console.log('Filtered folder structure:', filteredFolders); // Log folder structure
+        setFolderStructure(filteredFolders); // Set the folder structure from Flask without blank folders
       } catch (err) {
         setError('Failed to fetch folder structure: ' + err.message);
       }
@@ -195,7 +198,7 @@ export default function Home() {
   };
   
   return (
-    <div className="container mx-auto p-6 bg-blue-600 min-h-screen border-4 border-white">
+    <div className="w-screen h-screen p-6 bg-blue-600 border-4 border-white flex flex-col">
       {updateMessage ? (
         <div className="text-center text-white">
           <h1 className="text-3xl font-bold mb-6">{updateMessage}</h1>
@@ -242,47 +245,59 @@ export default function Home() {
           {/* White line separating instructions and "Scripts" */}
           <hr className="border-t-2 border-white my-6" />
 
-          {/* New title "Folders" */}
-          <div className="text-center text-white mb-4">
-            <h2 className="text-2xl font-bold">Folders</h2>
-          </div>
+        {selectedFolder ? (
+          <>
+            <div className="text-center text-white mb-4">
+              <h2 className="text-4xl font-extrabold flex items-center justify-center space-x-3">
+                <span className="text-5xl">📁</span> {/* Folder icon */}
+                <span>{selectedFolder} Scripts</span>
+              </h2>
+            </div>
 
-          {selectedFolder ? (
-            <>
-              <div className="text-center text-white mb-4">
-                <h2 className="text-2xl font-bold">{selectedFolder} Scripts</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {folderStructure[selectedFolder].map((script) => (
                 <button
-                  onClick={() => {
-                    console.log('User navigated back to folders view');
-                    setSelectedFolder(null); // Log when user navigates back to the folder view
-                  }}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
+                  key={script}
+                  className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-4"
+                  onClick={() => handleScriptClick(script)}
                 >
-                  Back to Folders
+                  <div className="text-4xl">
+                    📝 {/* Notepad icon */}
+                  </div>
+                  <div className="text-xl">
+                    {script.replace('.py', '').replace(/_/g, ' ')}
+                  </div>
                 </button>
-              </div>
+              ))}
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {folderStructure[selectedFolder].map((script) => (
-                  <button
-                    key={script}
-                    className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
-                    onClick={() => handleScriptClick(script)}
-                  >
-                    {script.replace('.py', '')}
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
+            <div className="text-center mt-6">
+              <button
+                onClick={() => {
+                  console.log('User navigated back to folders view');
+                  setSelectedFolder(null); // Log when user navigates back to the folder view
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
+              >
+                Back to Folders
+              </button>
+            </div>
+          </>
+        ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.keys(folderStructure).map((folder) => (
                 <button
                   key={folder}
-                  className="bg-white text-blue-600 hover:text-white hover:bg-blue-700 font-semibold py-2 px-4 rounded-lg shadow-md"
+                  className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md folder-button flex items-center space-x-4"
                   onClick={() => handleFolderClick(folder)}
                 >
-                  {folder}
+                  <div className="text-4xl"> {/* This makes the folder icon bigger */}
+                    📁 {/* Folder icon */}
+                  </div>
+                  <div className="text-xl">
+                    {folder} {/* Folder name */}
+                  </div>
                 </button>
               ))}
             </div>
