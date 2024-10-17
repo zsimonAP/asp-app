@@ -182,6 +182,26 @@ async function shutdownFlaskServer() {
   }
 }
 
+function deleteDirectory(directoryPath) {
+  if (fs.existsSync(directoryPath)) {
+    fs.readdirSync(directoryPath).forEach((file) => {
+      const currentPath = path.join(directoryPath, file);
+      if (fs.lstatSync(currentPath).isDirectory()) {
+        // Recursively delete subdirectory
+        deleteDirectory(currentPath);
+      } else {
+        // Delete file
+        fs.unlinkSync(currentPath);
+      }
+    });
+    fs.rmdirSync(directoryPath); // Remove the empty directory
+    log.info(`Deleted directory: ${directoryPath}`);
+  } else {
+    log.warn(`Directory not found: ${directoryPath}`);
+  }
+}
+
+
 async function waitForNextJsServer(port = 3000) {
   return new Promise((resolve, reject) => {
     const interval = setInterval(async () => {
@@ -417,5 +437,12 @@ app.on('window-all-closed', async function () {
   }
   await shutdownFlaskServer(); // Shutdown Flask server
   killPort(5001); // Kill tasks on port 5001 when all windows are closed
+
+  const localAppDataPath = process.env.LOCALAPPDATA;
+  const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
+  
+  log.info(`Deleting all files and folders in: ${destinationDir}`);
+  deleteDirectory(destinationDir); // Delete the downloaded Python files and folders
+
   if (process.platform !== 'darwin') app.quit();
 });
