@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.0.210",
+  "version": "1.0.213",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
@@ -70,7 +70,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "build/icon.ico",
+      "icon": "app-icon.ico",
       "artifactName": "associated-pension-automation-hub-${version}.exe"
     },
     "nsis": {
