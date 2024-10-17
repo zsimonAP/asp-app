@@ -134,6 +134,7 @@ function createWindow(url) {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
+    icon: path.join(app.getAppPath(), 'app-icon.ico'),
     webPreferences: {
       preload: path.join(app.getAppPath(), 'preload.js'),
       nodeIntegration: true,

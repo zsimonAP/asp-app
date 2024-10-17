@@ -215,10 +215,10 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-2">Instructions for Running Scripts:</h2>
               <ol className="list-decimal list-inside">
                 <li className="mb-2">
-                  <strong>Select a Script</strong>: Click on the button corresponding to the script you want to run.
+                  <strong>Select a Script</strong>: Open the folder and click on the button corresponding to the script you want to run.
                 </li>
                 <li className="mb-2">
-                  <strong>Provide Input</strong>: If required, an input field will appear. Type your response in the field and press <strong>Submit</strong>.
+                  <strong>Provide Input</strong>: If required, an input field will appear. Type your response in the field, or select a file, and press <strong>Submit</strong>.
                 </li>
                 <li className="mb-2">
                   <strong>View Output</strong>: The output of the script will be displayed below the script buttons where you can follow along with its progress.
