@@ -96,19 +96,25 @@ async function downloadPythonFiles() {
     const downloadPromises = files.map(file => {
       const destinationPath = path.join(destinationDir, file.name);
       const destinationFolder = path.dirname(destinationPath);
-
+    
+      // Skip directories (folders)
+      if (file.name.endsWith('/')) {
+        log.info(`Skipping download for folder: ${file.name}`);
+        return Promise.resolve();  // Skip this folder
+      }
+    
       if (!fs.existsSync(destinationFolder)) {
         log.info(`Creating directory: ${destinationFolder}`);
         fs.mkdirSync(destinationFolder, { recursive: true });
       }
-
+    
       if (fs.existsSync(destinationPath)) {
         log.info(`File already exists: ${file.name}. Skipping download.`);
         return Promise.resolve();
       }
-
+    
       log.info(`Starting download for: ${file.name} to ${destinationPath}`);
-
+    
       return new Promise((resolve, reject) => {
         const fileStream = file.createReadStream().pipe(fs.createWriteStream(destinationPath));
         fileStream.on('finish', () => {
@@ -121,6 +127,7 @@ async function downloadPythonFiles() {
         });
       });
     });
+    
 
     await Promise.all(downloadPromises);
     log.info('All Python files downloaded successfully.');
