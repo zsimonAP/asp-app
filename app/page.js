@@ -198,7 +198,7 @@ export default function Home() {
   };
   
   return (
-    <div className="w-screen h-screen p-6 bg-blue-600 border-4 border-white flex flex-col">
+    <div className="min-h-screen flex flex-col p-6 bg-blue-600 border-4 border-white">
       {updateMessage ? (
         <div className="text-center text-white">
           <h1 className="text-3xl font-bold mb-6">{updateMessage}</h1>
