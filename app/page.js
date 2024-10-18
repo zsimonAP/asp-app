@@ -232,9 +232,11 @@ export default function Home() {
                   <strong>Running Scripts</strong>: Only one script can be run at a time.
                 </li>
                 <li className="mb-2">
-                  <strong>Handling Errors</strong>:
+                  <strong>Troubleshooting</strong>:
                   <ul className="list-disc list-inside ml-4">
                     <li>If an error occurs, wait for the output section to disappear before trying again.</li>
+                    <li>If you type an input in wrong and another input box <strong>DOES NOT</strong> appear, close the Edge window and wait for the output section to disappear</li>
+                    <li>If the website for the script you are running does not do the intended task, close the Edge browser and try again</li>
                     <li>Try running the script up to <strong>three times</strong>.</li>
                     <li>If the issue persists, please contact <strong>Zach Simon</strong> for assistance:</li>
                     <ul className="list-none ml-4">
