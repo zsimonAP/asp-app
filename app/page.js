@@ -17,6 +17,8 @@ export default function Home() {
   const [updateMessage, setUpdateMessage] = useState(''); // Store update messages
   const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
   const [selectedFolder, setSelectedFolder] = useState(null); // Currently selected folder
+  const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
+
 
   useEffect(() => {
     let ipcRenderer;
@@ -92,6 +94,7 @@ export default function Home() {
 
   // Handle script click
   const handleScriptClick = (script) => {
+    if (isScriptRunning) return;
     console.log(`Running script: ${script}`); // Log when a script is clicked to be run
     runScript(`${selectedFolder}/${script}`);  // Send the folder and script name
   };
@@ -139,6 +142,7 @@ export default function Home() {
 
   // Run a script
   const runScript = (script) => {
+    setIsScriptRunning(true);
     setSelectedScript(script);
     const ws = new WebSocket(`ws://localhost:${websocketPort}`);
   
@@ -178,6 +182,7 @@ export default function Home() {
         setInputFields([]);
         setFileInputFields([]);
         setSelectedScript(null);
+        setIsScriptRunning(false);
         ws.close();
       } else {
         setOutput((prevOutput) => prevOutput + '\n' + data);  // Append new output progressively
@@ -261,6 +266,7 @@ export default function Home() {
                   key={script}
                   className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-4"
                   onClick={() => handleScriptClick(script)}
+                  disabled={isScriptRunning}
                 >
                   <div className="text-4xl">
                     📝 {/* Notepad icon */}
