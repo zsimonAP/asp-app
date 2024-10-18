@@ -26,11 +26,6 @@ jobs:
           draft: false
           prerelease: false
 
-      # Use the new environment file method to set the output
-      - name: Set upload_url output
-        run: |
-          echo "upload_url=${{ steps.create_release.outputs.upload_url }}" >> $GITHUB_ENV
-
   release_windows:
     needs: create_release
     runs-on: windows-latest
@@ -97,9 +92,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          upload_url: ${{ env.upload_url }}
-          asset_path: dist\associated-pension-automation-hub-1.0.220.exe
-          asset_name: associated-pension-automation-hub-1.0.220.exe
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: dist\associated-pension-automation-hub-1.0.221.exe
+          asset_name: associated-pension-automation-hub-1.0.221.exe
           asset_content_type: application/vnd.microsoft.portable-executable
 
       - name: Upload `latest.yml` to Release Assets
@@ -107,7 +102,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
-          upload_url: ${{ env.upload_url }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
           asset_path: dist\latest.yml
           asset_name: latest.yml
           asset_content_type: application/octet-stream
