@@ -17,6 +17,7 @@ log.info('App starting...');
 let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
+let flaskPort, websocketPort; // Ports for Flask and WebSocket
 
 // Define the path to the Firebase credentials file
 const serviceAccountPath = app.isPackaged
@@ -37,7 +38,6 @@ try {
   log.error('Error loading Firebase credentials:', error);
   app.quit();
 }
-
 
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
@@ -77,7 +77,6 @@ async function getFolderStructure() {
   }
 }
 
-
 async function downloadPythonFiles() {
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
@@ -97,7 +96,6 @@ async function downloadPythonFiles() {
       const destinationPath = path.join(destinationDir, file.name);
       const destinationFolder = path.dirname(destinationPath);
     
-      // Skip directories (folders)
       if (file.name.endsWith('/')) {
         log.info(`Skipping download for folder: ${file.name}`);
         return Promise.resolve();  // Skip this folder
@@ -127,7 +125,6 @@ async function downloadPythonFiles() {
         });
       });
     });
-    
 
     await Promise.all(downloadPromises);
     log.info('All Python files downloaded successfully.');
@@ -151,7 +148,6 @@ function createWindow(url) {
 
   mainWindow.loadURL(url);
 
-  // Handle window close
   mainWindow.on('closed', async () => {
     await stopAllProcesses(); // Gracefully stop all processes
   });
@@ -164,10 +160,9 @@ async function stopAllProcesses() {
     pythonProcess.kill();
   }
   
-  await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(5001); // Kill tasks on port 5001
+  await shutdownFlaskServer();
+  killPort(flaskPort);
 
-  // Ensure all python.exe processes are forcefully killed on Windows
   try {
     if (process.platform === 'win32') {
       log.info('Attempting to forcefully kill all python.exe processes...');
@@ -179,10 +174,9 @@ async function stopAllProcesses() {
   }
 }
 
-
 async function shutdownFlaskServer() {
   try {
-    await fetch('http://localhost:5001/shutdown', { method: 'POST' });
+    await fetch(`http://localhost:${flaskPort}/shutdown`, { method: 'POST' });
     log.info('Flask server shutdown initiated.');
   } catch (error) {
     log.error(`Failed to shutdown Flask server: ${error.message}`);
@@ -194,10 +188,8 @@ function deleteDirectory(directoryPath) {
     fs.readdirSync(directoryPath).forEach((file) => {
       const currentPath = path.join(directoryPath, file);
       if (fs.lstatSync(currentPath).isDirectory()) {
-        // Recursively delete subdirectory
         deleteDirectory(currentPath);
       } else {
-        // Delete file
         fs.unlinkSync(currentPath);
       }
     });
@@ -208,52 +200,15 @@ function deleteDirectory(directoryPath) {
   }
 }
 
-
-async function waitForNextJsServer(port = 3000) {
-  return new Promise((resolve, reject) => {
-    const interval = setInterval(async () => {
-      try {
-        const response = await fetch(`http://localhost:${port}`);
-        if (response.ok) {
-          clearInterval(interval);
-          resolve(`http://localhost:${port}`);
-        }
-      } catch (error) {
-        log.info(`Waiting for Next.js server on port ${port}...`);
-      }
-    }, 1000);
-    setTimeout(() => {
-      clearInterval(interval);
-      reject(new Error('Next.js server did not start in time'));
-    }, 30000); // Timeout after 30 seconds
-  });
-}
-
-function killPort(port) {
-  try {
-    log.info(`Attempting to kill process on port ${port}...`);
-    const platform = process.platform;
-
-    if (platform === 'win32') {
-      const command = `netstat -ano | findstr :${port}`;
-      const result = execSync(command).toString().trim();
-      if (result) {
-        const pid = result.split('\n')[0].split(' ').filter(Boolean).pop();
-        if (pid) {
-          execSync(`taskkill /PID ${pid} /F`);
-          log.info(`Successfully killed process with PID ${pid} on port ${port}.`);
-        }
-      }
-    } else {
-      const command = `lsof -ti:${port}`;
-      const processOutput = execSync(command).toString().trim();
-      if (processOutput) {
-        execSync(`kill -9 ${processOutput}`);
-        log.info(`Successfully killed process on port ${port}.`);
-      }
-    }
-  } catch (err) {
-    log.error(`Failed to kill process on port ${port}: ${err.message}`);
+function getPortsFromConfig() {
+  const configPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'config.json');
+  
+  if (fs.existsSync(configPath)) {
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return { flaskPort: config.flask_port, websocketPort: config.websocket_port };
+  } else {
+    log.error('Config file not found.');
+    return null;
   }
 }
 
@@ -306,7 +261,6 @@ async function startApp() {
     const pythonPath = path.join(pythonHome, 'python.exe');
     const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
 
-    // Set environment variables
     process.env.PYTHONHOME = pythonHome;
     process.env.PYTHONPATH = pythonPathEnv;
     process.env.PYTHONEXECUTABLE = pythonPath;
@@ -339,19 +293,6 @@ async function startApp() {
     try {
       log.info('Spawning Python process with the following command:');
       log.info(`Command: ${pythonPath} ${serverScriptPath}`);
-      log.info(
-        'Environment Variables:',
-        JSON.stringify(
-          {
-            PYTHONHOME: process.env.PYTHONHOME,
-            PYTHONPATH: process.env.PYTHONPATH,
-            PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
-            PATH: process.env.PATH,
-          },
-          null,
-          2
-        )
-      );
 
       pythonProcess = spawn(pythonPath, [serverScriptPath], {
         env: {
@@ -380,6 +321,15 @@ async function startApp() {
       });
 
       log.info('Python process started successfully');
+
+      // After Python process starts, read the ports from config.json
+      const ports = getPortsFromConfig();
+      if (ports) {
+        flaskPort = ports.flaskPort;
+        websocketPort = ports.websocketPort;
+        log.info(`Flask server running on port: ${flaskPort}`);
+        log.info(`WebSocket server running on port: ${websocketPort}`);
+      }
     } catch (error) {
       log.error(`Failed to start Python process: ${error.message}`);
     }
@@ -432,7 +382,6 @@ function checkForUpdates() {
   }, 5000);  // Start app if no update is detected after 5 seconds
 }
 
-
 app.whenReady().then(() => {
   checkForUpdates(); // Check for updates first
 });
@@ -442,14 +391,14 @@ app.on('window-all-closed', async function () {
     log.info('Killing Python process...');
     pythonProcess.kill();
   }
-  await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(5001); // Kill tasks on port 5001 when all windows are closed
+  await shutdownFlaskServer();
+  killPort(flaskPort);
 
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
   
   log.info(`Deleting all files and folders in: ${destinationDir}`);
-  deleteDirectory(destinationDir); // Delete the downloaded Python files and folders
+  deleteDirectory(destinationDir);
 
   if (process.platform !== 'darwin') app.quit();
 });

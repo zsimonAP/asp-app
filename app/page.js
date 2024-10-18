@@ -13,6 +13,7 @@ export default function Home() {
   const [showFileInputFields, setShowFileInputFields] = useState(false); // To show file input fields
   const [selectedScript, setSelectedScript] = useState(null); // Currently selected script
   const [websocketPort, setWebsocketPort] = useState(null); // Holds WebSocket port
+  const [flaskPort, setFlaskPort] = useState(null); // Holds Flask port
   const [websocket, setWebsocket] = useState(null); // Active WebSocket connection
   const [updateMessage, setUpdateMessage] = useState(''); // Store update messages
   const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
@@ -40,9 +41,22 @@ export default function Home() {
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
     }
+    
+    const fetchPorts = async () => {
+      try {
+        const response = await axios.get(`http://localhost:${flaskPort}/get-ports`);
+        setWebsocketPort(response.data.websocketPort);
+        setFlaskPort(response.data.flaskPort);
+      } catch (err) {
+        setError('Failed to fetch ports: ' + err.message);
+      }
+    };
+
+    fetchPorts();
+
     const fetchFolders = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-folders');
+        const response = await axios.get(`http://localhost:${flaskPort}/list-folders`);
         const filteredFolders = Object.fromEntries(
           Object.entries(response.data).filter(([key]) => key.trim() !== '')
         );
@@ -52,27 +66,21 @@ export default function Home() {
         setError('Failed to fetch folder structure: ' + err.message);
       }
     };
-    fetchFolders();
+    if (flaskPort) {
+      fetchFolders();
+    }
 
     const fetchScripts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-scripts');
+        const response = await axios.get(`http://localhost:${flaskPort}/list-scripts`);
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
-    };    
-    fetchScripts();
-
-    const fetchWebSocketPort = async () => {
-      try {
-        const response = await axios.get('http://localhost:5001/get-websocket-port');
-        setWebsocketPort(response.data.port);
-      } catch (err) {
-        setError('Failed to fetch WebSocket port: ' + err.message);
-      }
     };
-    fetchWebSocketPort();
+    if (flaskPort) {
+      fetchScripts();
+    }
 
     // Cleanup WebSocket connection on component unmount
     return () => {
@@ -84,7 +92,7 @@ export default function Home() {
         ipcRenderer.removeAllListeners('update-ready');
       }
     };
-  }, [websocket]);
+  }, [websocket, flaskPort]);
 
   // Handle folder click to display scripts within that folder
   const handleFolderClick = (folder) => {
@@ -98,7 +106,6 @@ export default function Home() {
     console.log(`Running script: ${script}`); // Log when a script is clicked to be run
     runScript(`${selectedFolder}/${script}`);  // Send the folder and script name
   };
-
 
   // Handle input submit
   const handleInputSubmit = () => {
@@ -249,18 +256,16 @@ export default function Home() {
             </div>
           </div>
 
-          {/* White line separating instructions and "Scripts" */}
           <hr className="border-t-2 border-white my-6" />
 
         {selectedFolder ? (
           <>
             <div className="text-center text-white mb-4">
               <h2 className="text-4xl font-extrabold flex items-center justify-center space-x-3">
-                <span className="text-5xl">📁</span> {/* Folder icon */}
+                <span className="text-5xl">📁</span>
                 <span>{selectedFolder} Scripts</span>
               </h2>
             </div>
-
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {folderStructure[selectedFolder].map((script) => (
@@ -271,7 +276,7 @@ export default function Home() {
                   disabled={isScriptRunning}
                 >
                   <div className="text-4xl">
-                    📝 {/* Notepad icon */}
+                    📝
                   </div>
                   <div className="text-xl">
                     {script.replace('.py', '').replace(/_/g, ' ')}
@@ -284,7 +289,7 @@ export default function Home() {
               <button
                 onClick={() => {
                   console.log('User navigated back to folders view');
-                  setSelectedFolder(null); // Log when user navigates back to the folder view
+                  setSelectedFolder(null);
                 }}
                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-md"
               >
@@ -300,11 +305,11 @@ export default function Home() {
                   className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md folder-button flex items-center space-x-4"
                   onClick={() => handleFolderClick(folder)}
                 >
-                  <div className="text-4xl"> {/* This makes the folder icon bigger */}
-                    📁 {/* Folder icon */}
+                  <div className="text-4xl">
+                    📁
                   </div>
                   <div className="text-xl">
-                    {folder} {/* Folder name */}
+                    {folder}
                   </div>
                 </button>
               ))}
@@ -317,12 +322,12 @@ export default function Home() {
                 <div className="flex mb-4" key={index}>
                   <input
                     type="text"
-                    placeholder={field.placeholder}  // Set placeholder for the input field
-                    value={field.value}  // Set value for the input field
-                    onChange={(e) => handleInputChange(index, e.target.value)}  // Handle changes
+                    placeholder={field.placeholder}
+                    value={field.value}
+                    onChange={(e) => handleInputChange(index, e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        handleInputSubmit(); // Call the submit function when Enter is pressed
+                        handleInputSubmit();
                       }
                     }}
                     className="border border-gray-300 p-2 rounded-l-lg flex-grow"
@@ -343,18 +348,15 @@ export default function Home() {
               {fileInputFields.map((field, index) => (
                 <div key={index} className="flex flex-col mb-4">
                   <div className="flex items-center">
-                    {/* Choose File Button */}
                     <label className="bg-white hover:bg-blue-700 text-blue-600 px-4 py-2 rounded-lg cursor-pointer mr-4">
                       <input
                         type="file"
                         accept=".csv"
                         onChange={(e) => handleFileChange(index, e.target.files[0])}
-                        className="hidden" // Hide the default file input
+                        className="hidden"
                       />
                       Upload File
                     </label>
-
-                    {/* File Name Display Box */}
                     <div className="rounded-lg border-2 border-white p-2 bg-blue-600 flex-grow">
                       <span className="text-white">
                         {field.file ? field.file.name : "No file selected"}
@@ -362,7 +364,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Conditionally Render Submit File Button if a file is selected */}
                   {field.file && (
                     <button
                       onClick={handleFileSubmit}
@@ -393,5 +394,4 @@ export default function Home() {
       )}
     </div>
   );
-
 }
