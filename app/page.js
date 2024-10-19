@@ -39,11 +39,6 @@ export default function Home() {
         if (port) {
           setFlaskPort(port);
           console.log(`Received Flask port: ${port}`);
-
-          // After receiving Flask port, fetch data
-          fetchFolders(port);
-          fetchScripts(port);
-          fetchWebSocketPort(port);
         }
       });
 
@@ -65,6 +60,7 @@ export default function Home() {
         setError('Failed to fetch folder structure: ' + err.message);
       }
     };
+    fetchFolders()
 
     const fetchScripts = async () => {
       try {
@@ -73,7 +69,8 @@ export default function Home() {
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
-    };    
+    };  
+    fetchScripts()  
 
     const fetchWebSocketPort = async () => {
       try {
@@ -83,6 +80,7 @@ export default function Home() {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
+    fetchWebSocketPort()
 
     // Cleanup WebSocket connection on component unmount
     return () => {

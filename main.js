@@ -378,14 +378,12 @@ async function startApp() {
     });
 
     const folderStructure = await getFolderStructure();
+    log.info('Sending folder structure to renderer:', folderStructure);
+    mainWindow.webContents.send('folder-structure', folderStructure);
+
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
-
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow.webContents.send('folder-structure', folderStructure);
-    });
     
-
     await downloadPythonFiles();
 
     log.info('App started successfully.');
