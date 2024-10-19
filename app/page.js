@@ -18,7 +18,20 @@ export default function Home() {
   const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
   const [selectedFolder, setSelectedFolder] = useState(null); // Currently selected folder
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
+  const [flaskPort, setFlaskPort] = useState(null);
 
+  const fetchFlaskPort = () => {
+    const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
+    
+    try {
+      const data = fs.readFileSync(flaskPortPath, 'utf-8');
+      const portInfo = JSON.parse(data);
+      setFlaskPort(portInfo.port);
+      console.log(`Flask port is: ${portInfo.port}`);
+    } catch (err) {
+      setError('Failed to fetch Flask port: ' + err.message);
+    }
+  };
 
   useEffect(() => {
     let ipcRenderer;
@@ -40,9 +53,12 @@ export default function Home() {
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
     }
+
+    fetchFlaskPort();
+
     const fetchFolders = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-folders');
+        const response = await axios.get(`http://localhost:${flaskPort}/list-folders`);
         const filteredFolders = Object.fromEntries(
           Object.entries(response.data).filter(([key]) => key.trim() !== '')
         );
@@ -56,7 +72,7 @@ export default function Home() {
 
     const fetchScripts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/list-scripts');
+        const response = await axios.get(`http://localhost:${flaskPort}/list-scripts`);
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
@@ -66,7 +82,7 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/get-websocket-port');
+        const response = await axios.get(`http://localhost:${flaskPort}/get-websocket-port`);
         setWebsocketPort(response.data.port);
       } catch (err) {
         setError('Failed to fetch WebSocket port: ' + err.message);

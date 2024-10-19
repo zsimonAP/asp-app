@@ -9,6 +9,7 @@ import websockets
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import tempfile
+import socket
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +21,7 @@ CORS(app)
 # Ensure the scripts directory path is correct
 SCRIPTS_DIR = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'backend', 'scripts')
 CONFIG_PATH = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'websocket_port.json')
+FLASK_PATH = os.path.join(os.getenv('LOCALAPPDATA'), 'associated-pension-automation-hub', 'flask_port.json')
 
 # Ensure the directory exists
 os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
@@ -44,7 +46,6 @@ logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 def list_folders():
     try:
         folder_structure = {}
-        # Walk through the scripts directory and collect folder and file info
         for root, dirs, files in os.walk(SCRIPTS_DIR):
             relative_root = os.path.relpath(root, SCRIPTS_DIR)
             if relative_root == ".":
@@ -90,7 +91,7 @@ def shutdown():
 
 async def handler(websocket, path):
     try:
-        script_name = await websocket.recv()  # This will now include the folder structure
+        script_name = await websocket.recv()
         script_path = os.path.join(SCRIPTS_DIR, script_name)
 
         if not os.path.exists(script_path):
@@ -142,6 +143,11 @@ async def handler(websocket, path):
         await websocket.send(f"Exception: {str(e)}")
 
 
+def write_flask_port_to_file(port):
+    with open(FLASK_PATH, "w") as file:
+        json.dump({"port": port}, file)
+    logging.info(f"Flask server port {port} written to {FLASK_PATH}")
+
 
 def write_port_to_file(port):
     with open(CONFIG_PATH, "w") as file:
@@ -164,7 +170,16 @@ if __name__ == "__main__":
     # Ensure only one WebSocket server instance
     if threading.active_count() == 1:
         threading.Thread(target=start_websocket_server).start()
+
     logging.info("Starting Flask server...")
     logging.info(f"Using Python executable: {sys.executable}")
     logging.info(f"Scripts directory: {SCRIPTS_DIR}")
-    app.run(debug=True, host='0.0.0.0', port=5001)
+
+    # Bind Flask to any available port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('0.0.0.0', 0))  # Bind to any available port
+        port = s.getsockname()[1]  # Get the assigned port
+        write_flask_port_to_file(port)  # Write the port to the FLASK_PATH file
+        logging.info(f"FLASK PORT NOTED")
+
+    app.run(debug=True, host='0.0.0.0', port=port)
