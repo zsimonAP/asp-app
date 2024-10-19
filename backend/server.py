@@ -1,13 +1,11 @@
 import os
-import sys
-import logging
 import json
+import logging
 import asyncio
 import subprocess
 import threading
 import websockets
 import tempfile
-import socket
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.serving import make_server
@@ -15,47 +13,31 @@ from werkzeug.serving import make_server
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Flask setup
-app = Flask(__name__)
-CORS(app)
-
 # Paths and configurations
 LOCAL_APP_DATA = os.getenv('LOCALAPPDATA')
 APP_DIR = os.path.join(LOCAL_APP_DATA, 'associated-pension-automation-hub')
-SCRIPTS_DIR = os.path.join(APP_DIR, 'backend', 'scripts')
-CONFIG_PATH = os.path.join(APP_DIR, 'config.json')
+SCRIPTS_DIR = os.path.join(APP_DIR, 'backend', 'scripts')  # Updated backend scripts directory
+CONFIG_PATH = os.path.join(SCRIPTS_DIR, 'config.json')  # config.json now in backend/scripts
+WEBSOCKET_PORT_PATH = os.path.join(APP_DIR, 'websocket_port.json')  # WebSocket port path
 
 # Ensure the directory exists
-os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+os.makedirs(SCRIPTS_DIR, exist_ok=True)
 
-# Hardcode the Python executable path
-hardcoded_python_path = os.path.join(os.path.dirname(__file__), '..', 'env', 'python.exe')
-
-if os.path.exists(hardcoded_python_path):
-    logging.info(f"Overriding sys.executable to use the hardcoded path: {hardcoded_python_path}")
-    sys.executable = hardcoded_python_path
-else:
-    logging.error(f"Hardcoded Python executable not found: {hardcoded_python_path}")
-
-# Log paths and environment for debugging
-logging.info(f"Using Python executable: {sys.executable}")
-logging.info(f"sys.path: {sys.path}")
-logging.info(f"Environment Variables: {json.dumps(dict(os.environ), indent=2)}")
-logging.info(f"Scripts directory: {SCRIPTS_DIR}")
-
-def write_config_value(key, value):
+def write_config_value(key, value, config_path):
     config = {}
-    if os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH, 'r') as file:
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as file:
             config = json.load(file)
     config[key] = value
-    with open(CONFIG_PATH, 'w') as file:
-        json.dump(config, file)
-    logging.info(f"{key} set to {value} in {CONFIG_PATH}")
 
-def read_config_value(key):
-    if os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH, 'r') as file:
+    with open(config_path, 'w') as file:
+        json.dump(config, file)
+    
+    logging.info(f"{key} set to {value} in {config_path}")
+
+def read_config_value(key, config_path):
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as file:
             config = json.load(file)
         return config.get(key)
     else:
@@ -90,8 +72,8 @@ def list_scripts():
 @app.route('/get-ports', methods=['GET'])
 def get_ports():
     try:
-        flask_port = read_config_value('flask_port')
-        websocket_port = read_config_value('websocket_port')
+        flask_port = read_config_value('flask_port', CONFIG_PATH)
+        websocket_port = read_config_value('websocket_port', WEBSOCKET_PORT_PATH)
         return jsonify({"flask_port": flask_port, "websocket_port": websocket_port}), 200
     except Exception as e:
         logging.error(f"Error getting ports: {e}")
@@ -164,15 +146,15 @@ def start_websocket_server():
     start_server = websockets.serve(handler, "localhost", 0)  # Bind to an available port
     server = loop.run_until_complete(start_server)
     port = server.sockets[0].getsockname()[1]  # Get the port number assigned
-    write_config_value('websocket_port', port)
+    write_config_value('websocket_port', port, WEBSOCKET_PORT_PATH)
     logging.info(f"WebSocket server started on port {port}")
     loop.run_forever()
 
 def run_flask_server():
     server = make_server('0.0.0.0', 0, app)
     port = server.server_port
+    write_config_value('flask_port', port, CONFIG_PATH)
     logging.info(f"Assigned Flask port: {port}")
-    write_config_value('flask_port', port)
     server.serve_forever()
 
 if __name__ == "__main__":

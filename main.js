@@ -201,19 +201,21 @@ function deleteDirectory(directoryPath) {
 }
 
 function getPortsFromConfig() {
-  const configPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'config.json');
+  const localAppDataPath = process.env.LOCALAPPDATA;
+  const configPath = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts', 'config.json');
+  const websocketConfigPath = path.join(localAppDataPath, 'associated-pension-automation-hub', 'websocket_port.json');
   
-  if (fs.existsSync(configPath)) {
+  try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    return { flaskPort: config.flask_port, websocketPort: config.websocket_port };
-  } else {
-    log.error('Config file not found.');
+    const websocketConfig = JSON.parse(fs.readFileSync(websocketConfigPath, 'utf8'));
+    return { flaskPort: config.flask_port, websocketPort: websocketConfig.websocket_port };
+  } catch (error) {
+    log.error('Error reading port configurations: ', error);
     return null;
   }
 }
 
 async function startApp() {
-
   const nextAppPath = path.join(__dirname, '.next');
   log.info(`Checking Next.js build files at: ${nextAppPath}`);
 
@@ -224,10 +226,12 @@ async function startApp() {
   }
 
   try {
+    // Initialize Next.js application
     const nextApp = next({ dev: false, dir: __dirname });
     await nextApp.prepare();
     log.info('Next.js application prepared successfully.');
 
+    // Start Next.js server
     const nextHandler = nextApp.getRequestHandler();
     const server = createServer((req, res) => nextHandler(req, res));
 
@@ -235,105 +239,115 @@ async function startApp() {
       if (err) {
         log.error('Failed to start Next.js server:', err);
         app.quit();
+      } else {
+        log.info('> Ready on http://localhost:3000');
       }
-      log.info('> Ready on http://localhost:3000');
     });
 
+    // Fetch folder structure from Firebase Storage
     const folderStructure = await getFolderStructure();
-    const startUrl = await waitForNextJsServer(3000);
+    
+    // Start the Electron window once Next.js server is ready
+    const startUrl = 'http://localhost:3000'; // No need for waitForNextJsServer
     createWindow(startUrl);
 
+    // Send folder structure to the frontend once the Electron window finishes loading
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send('folder-structure', folderStructure);
     });
 
+    // Download Python files
     await downloadPythonFiles();
-
     log.info('App started successfully.');
   } catch (error) {
     log.error(`Failed to start the app: ${error.message}`);
     app.quit();
+    return;
   }
 
-    const appRootPath = process.resourcesPath; // Points to the resources directory
+  // Define the paths for the Python environment and script
+  const appRootPath = process.resourcesPath; // Points to the resources directory
+  const pythonHome = path.join(appRootPath, 'env');
+  const pythonPath = path.join(pythonHome, 'python.exe');
+  const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
+  const serverScriptPath = path.join(appRootPath, 'backend', 'server.py');
 
-    const pythonHome = path.join(appRootPath, 'env');
-    const pythonPath = path.join(pythonHome, 'python.exe');
-    const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
+  // Check if the necessary Python paths and server script exist
+  if (!fs.existsSync(pythonPath)) {
+    log.error(`Python executable not found at: ${pythonPath}`);
+    app.quit();
+    return;
+  }
 
-    process.env.PYTHONHOME = pythonHome;
-    process.env.PYTHONPATH = pythonPathEnv;
-    process.env.PYTHONEXECUTABLE = pythonPath;
-    process.env.PYTHONNOUSERSITE = '1';
-    process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
+  if (!fs.existsSync(serverScriptPath)) {
+    log.error(`Server script not found: ${serverScriptPath}`);
+    app.quit();
+    return;
+  }
 
-    log.info(`Python path: ${pythonPath}`);
-    log.info(`Python home: ${pythonHome}`);
-    log.info(`Python path environment: ${pythonPathEnv}`);
-    log.info(`Environment PATH: ${process.env.PATH}`);
-    log.info(`Environment PYTHONHOME: ${process.env.PYTHONHOME}`);
-    log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
-    log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
+  // Set environment variables for the Python process
+  process.env.PYTHONHOME = pythonHome;
+  process.env.PYTHONPATH = pythonPathEnv;
+  process.env.PYTHONEXECUTABLE = pythonPath;
+  process.env.PYTHONNOUSERSITE = '1';
+  process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
 
-    const serverScriptPath = path.join(appRootPath, 'backend', 'server.py');
-    log.info(`Server script path: ${serverScriptPath}`);
+  log.info(`Python path: ${pythonPath}`);
+  log.info(`Python home: ${pythonHome}`);
+  log.info(`Python path environment: ${pythonPathEnv}`);
+  log.info(`Environment PATH: ${process.env.PATH}`);
+  log.info(`Environment PYTHONHOME: ${process.env.PYTHONHOME}`);
+  log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
+  log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
+  
+  // Start the Python server
+  try {
+    log.info('Spawning Python process with the following command:');
+    log.info(`Command: ${pythonPath} ${serverScriptPath}`);
 
-    if (!fs.existsSync(pythonPath)) {
-      log.error(`Python executable not found at: ${pythonPath}`);
-      app.quit();
-      return;
+    pythonProcess = spawn(pythonPath, [serverScriptPath], {
+      env: {
+        ...process.env,
+        PYTHONHOME: pythonHome,
+        PYTHONPATH: pythonPathEnv,
+        PYTHONEXECUTABLE: pythonPath,
+        PATH: `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`,
+      },
+    });
+
+    pythonProcess.stdout.on('data', (data) => {
+      log.info(`Python stdout: ${data}`);
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      log.error(`Python stderr: ${data}`);
+    });
+
+    pythonProcess.on('error', (err) => {
+      log.error(`Python process failed to start: ${err.message}`);
+    });
+
+    pythonProcess.on('exit', (code, signal) => {
+      log.info(`Python process exited with code ${code} and signal ${signal}`);
+    });
+
+    log.info('Python process started successfully');
+
+    // After Python process starts, read the Flask and WebSocket ports from config files
+    const ports = getPortsFromConfig();
+    if (ports) {
+      flaskPort = ports.flaskPort;
+      websocketPort = ports.websocketPort;
+      log.info(`Flask server running on port: ${flaskPort}`);
+      log.info(`WebSocket server running on port: ${websocketPort}`);
+    } else {
+      log.error('Failed to retrieve Flask and WebSocket ports from config.');
     }
-
-    if (!fs.existsSync(serverScriptPath)) {
-      log.error(`Server script not found: ${serverScriptPath}`);
-      app.quit();
-      return;
-    }
-
-    try {
-      log.info('Spawning Python process with the following command:');
-      log.info(`Command: ${pythonPath} ${serverScriptPath}`);
-
-      pythonProcess = spawn(pythonPath, [serverScriptPath], {
-        env: {
-          ...process.env,
-          PYTHONHOME: pythonHome,
-          PYTHONPATH: pythonPathEnv,
-          PYTHONEXECUTABLE: pythonPath,
-          PATH: `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`,
-        },
-      });
-
-      pythonProcess.stdout.on('data', (data) => {
-        log.info(`Python stdout: ${data}`);
-      });
-
-      pythonProcess.stderr.on('data', (data) => {
-        log.error(`Python stderr: ${data}`);
-      });
-
-      pythonProcess.on('error', (err) => {
-        log.error(`Python process failed to start: ${err.message}`);
-      });
-
-      pythonProcess.on('exit', (code, signal) => {
-        log.info(`Python process exited with code ${code} and signal ${signal}`);
-      });
-
-      log.info('Python process started successfully');
-
-      // After Python process starts, read the ports from config.json
-      const ports = getPortsFromConfig();
-      if (ports) {
-        flaskPort = ports.flaskPort;
-        websocketPort = ports.websocketPort;
-        log.info(`Flask server running on port: ${flaskPort}`);
-        log.info(`WebSocket server running on port: ${websocketPort}`);
-      }
-    } catch (error) {
-      log.error(`Failed to start Python process: ${error.message}`);
-    }
+  } catch (error) {
+    log.error(`Failed to start Python process: ${error.message}`);
+  }
 }
+
 
 let appStarted = false;  // Flag to ensure app only starts once
 
