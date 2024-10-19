@@ -331,6 +331,8 @@ async function startApp() {
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
 
+    flaskPort = await getFlaskPort();
+
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send('folder-structure', folderStructure);
       mainWindow.webContents.send('flask-port', flaskPort);

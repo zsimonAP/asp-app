@@ -18,7 +18,7 @@ export default function Home() {
   const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
   const [selectedFolder, setSelectedFolder] = useState(null); // Currently selected folder
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
-
+  const [flaskPort, setFlaskPort] = useState(null);
 
   useEffect(() => {
     let ipcRenderer;
@@ -28,7 +28,8 @@ export default function Home() {
 
       ipcRenderer.on('flask-port', (event, port) => {
         console.log('Received Flask port:', port);
-        setWebsocketPort(port); // Set the received port into state
+        setWebsocketPort(port);  // Update WebSocket port state
+        setFlaskPort(port);  // Define and set flaskPort for use with Flask API requests
       });
 
       // Listen for update events
