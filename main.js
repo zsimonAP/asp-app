@@ -17,6 +17,10 @@ log.info('App starting...');
 let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
+let flaskPort = 5001;
+
+const portJsonPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
+
 
 // Define the path to the Firebase credentials file
 const serviceAccountPath = app.isPackaged
@@ -137,23 +141,6 @@ async function downloadPythonFiles() {
   }
 }
 
-// Path to the port configuration file
-const portJsonPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
-
-// Read the Flask port from the port JSON file
-function getFlaskPort() {
-  try {
-    const portData = JSON.parse(fs.readFileSync(portJsonPath, 'utf8'));
-    return portData.port;
-  } catch (error) {
-    log.error(`Failed to read port from ${portJsonPath}: ${error.message}`);
-    app.quit();
-  }
-}
-
-// Dynamically get the Flask port
-const flaskPort = getFlaskPort();
-
 function createWindow(url) {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -182,7 +169,7 @@ async function stopAllProcesses() {
   }
   
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(flaskPort); // Kill tasks on port
+  killPort(flaskPort); // Kill tasks on port 5001
 
   // Ensure all python.exe processes are forcefully killed on Windows
   try {
@@ -196,6 +183,37 @@ async function stopAllProcesses() {
   }
 }
 
+// Dynamically read the Flask port from flask_port.json after the server starts
+async function getFlaskPort() {
+  return new Promise((resolve, reject) => {
+    if (fs.existsSync(portJsonPath)) {
+      fs.readFile(portJsonPath, 'utf8', (err, data) => {
+        if (err) {
+          log.error(`Error reading Flask port JSON file: ${err}`);
+          reject(err);
+        } else {
+          try {
+            const json = JSON.parse(data);
+            const port = json.port;
+            if (port) {
+              log.info(`Flask server is running on port ${port}`);
+              resolve(port);
+            } else {
+              log.error('Port not found in flask_port.json');
+              reject(new Error('Port not found in flask_port.json'));
+            }
+          } catch (parseError) {
+            log.error(`Error parsing flask_port.json: ${parseError}`);
+            reject(parseError);
+          }
+        }
+      });
+    } else {
+      log.error('flask_port.json not found');
+      reject(new Error('flask_port.json not found'));
+    }
+  });
+}
 
 async function shutdownFlaskServer() {
   try {
@@ -397,6 +415,7 @@ async function startApp() {
       });
 
       log.info('Python process started successfully');
+      flaskPort = await getFlaskPort();
     } catch (error) {
       log.error(`Failed to start Python process: ${error.message}`);
     }
@@ -460,7 +479,7 @@ app.on('window-all-closed', async function () {
     pythonProcess.kill();
   }
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(flaskPort); // Kill tasks on port when all windows are closed
+  killPort(flaskPort); // Kill tasks on port 5001 when all windows are closed
 
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');
