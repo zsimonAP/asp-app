@@ -183,36 +183,44 @@ async function stopAllProcesses() {
   }
 }
 
-// Dynamically read the Flask port from flask_port.json after the server starts
-async function getFlaskPort() {
+async function waitForFlaskPortFile(timeout = 10000, interval = 500) {
   return new Promise((resolve, reject) => {
-    if (fs.existsSync(portJsonPath)) {
-      fs.readFile(portJsonPath, 'utf8', (err, data) => {
-        if (err) {
-          log.error(`Error reading Flask port JSON file: ${err}`);
-          reject(err);
-        } else {
-          try {
-            const json = JSON.parse(data);
-            const port = json.port;
-            if (port) {
-              log.info(`Flask server is running on port ${port}`);
-              resolve(port);
-            } else {
-              log.error('Port not found in flask_port.json');
-              reject(new Error('Port not found in flask_port.json'));
-            }
-          } catch (parseError) {
-            log.error(`Error parsing flask_port.json: ${parseError}`);
-            reject(parseError);
-          }
-        }
-      });
-    } else {
-      log.error('flask_port.json not found');
-      reject(new Error('flask_port.json not found'));
-    }
+    const startTime = Date.now();
+
+    const checkFileExists = () => {
+      if (fs.existsSync(portJsonPath)) {
+        log.info('flask_port.json found.');
+        resolve();  // Resolve once the file is found
+      } else if (Date.now() - startTime >= timeout) {
+        reject(new Error('Timeout waiting for flask_port.json to be created'));
+      } else {
+        setTimeout(checkFileExists, interval);  // Retry after the interval
+      }
+    };
+
+    checkFileExists();
   });
+}
+
+async function getFlaskPort() {
+  try {
+    await waitForFlaskPortFile();  // Wait for the file to be created
+
+    // Now proceed to read the file
+    const data = fs.readFileSync(portJsonPath, 'utf8');
+    const json = JSON.parse(data);
+    const port = json.port;
+
+    if (port) {
+      log.info(`Flask server is running on port ${port}`);
+      return port;
+    } else {
+      throw new Error('Port not found in flask_port.json');
+    }
+  } catch (error) {
+    log.error(`Error getting Flask port: ${error.message}`);
+    throw error;
+  }
 }
 
 async function shutdownFlaskServer() {
