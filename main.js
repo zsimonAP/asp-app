@@ -7,6 +7,7 @@ const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fetch = require('node-fetch');
+const firebaseAdmin = require('firebase-admin');
 
 // Setup logging
 autoUpdater.logger = log;
@@ -36,7 +37,6 @@ try {
   log.error('Error loading Firebase credentials:', error);
   app.quit();
 }
-
 
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
