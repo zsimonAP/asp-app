@@ -343,6 +343,9 @@ async function startApp() {
 
     setTimeout(() => {
       readFlaskPort(); // Read the Flask port after server.py has started and written to the file
+
+      console.log(`Sending Flask port to renderer: ${flaskPort}`);
+      mainWindow.webContents.send('flask-port', flaskPort);
     }, 3000); // You can adjust the delay time as needed
 
   } catch (error) {
@@ -379,12 +382,7 @@ async function startApp() {
     createWindow(startUrl);
 
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log(`Sending Flask port to renderer: ${flaskPort}`);
-      // Send folder structure
       mainWindow.webContents.send('folder-structure', folderStructure);
-    
-      // Send Flask port separately
-      mainWindow.webContents.send('flask-port', flaskPort);
     });
     
 
