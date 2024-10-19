@@ -150,7 +150,25 @@ def find_available_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(('localhost', 0))  # Bind to any available port
         return sock.getsockname()[1]  # Return the port number
+    
+# Check if Flask port is already in use
+def is_port_in_use(port):
+    """Check if the given port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
 
+
+# Function to check if Flask is already running
+def check_existing_flask_server():
+    """Check if there's an existing Flask server running on the port in flask_port.json."""
+    if os.path.exists(PORT_JSON):
+        with open(PORT_JSON, "r") as file:
+            data = json.load(file)
+            port = data.get("port")
+            if port and is_port_in_use(port):
+                logging.info(f"Flask server is already running on port {port}.")
+                return True  # Flask server is already running
+    return False
 
 def write_port_to_file(port, path):
     """Write the given port to the specified JSON file."""
@@ -171,16 +189,22 @@ def start_websocket_server():
 
 
 if __name__ == "__main__":
-    # Ensure only one WebSocket server instance
+    # Ensure only one Flask server instance
     if threading.active_count() == 1:
         threading.Thread(target=start_websocket_server).start()
-    
-    # Find an available port for Flask app and write it to PORT_JSON
-    available_flask_port = find_available_port()
-    write_port_to_file(available_flask_port, PORT_JSON)
 
-    # Start the Flask server on the available port
-    logging.info("Starting Flask server...")
-    logging.info(f"Using Python executable: {sys.executable}")
-    logging.info(f"Scripts directory: {SCRIPTS_DIR}")
-    app.run(debug=True, host='0.0.0.0', port=available_flask_port)
+    # Check if the Flask server is already running
+    if not check_existing_flask_server():
+        # Find an available port for the Flask app
+        available_flask_port = find_available_port()
+
+        # Write to file with locking
+        write_port_to_file(available_flask_port, PORT_JSON)
+
+        # Start the Flask server on the available port
+        logging.info(f"Starting Flask server on port {available_flask_port}...")
+        logging.info(f"Using Python executable: {sys.executable}")
+        logging.info(f"Scripts directory: {SCRIPTS_DIR}")
+        app.run(debug=True, host='0.0.0.0', port=available_flask_port)
+    else:
+        logging.info("Flask server already running, not starting another instance.")
