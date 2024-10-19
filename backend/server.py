@@ -177,16 +177,32 @@ def write_port_to_file(port, path):
     logging.info(f"Port {port} written to {path}")
 
 
-def start_websocket_server():
-    asyncio.set_event_loop(asyncio.new_event_loop())
-    loop = asyncio.get_event_loop()
-    start_server = websockets.serve(handler, "localhost", 0)  # Bind to an available port
-    server = loop.run_until_complete(start_server)
-    port = server.sockets[0].getsockname()[1]  # Get the port number assigned
-    write_port_to_file(port, CONFIG_PATH)  # Write WebSocket port to CONFIG_PATH
-    logging.info(f"WebSocket server started on port {port}")
-    loop.run_forever()
+# Add a global flag to track the WebSocket server's state
+websocket_server_started = False
 
+def start_websocket_server():
+    global websocket_server_started
+    if websocket_server_started:
+        logging.info("WebSocket server is already running. Not starting a new instance.")
+        return
+
+    try:
+        asyncio.set_event_loop(asyncio.new_event_loop())
+        loop = asyncio.get_event_loop()
+        start_server = websockets.serve(handler, "localhost", 0)  # Bind to an available port
+        server = loop.run_until_complete(start_server)
+        port = server.sockets[0].getsockname()[1]  # Get the port number assigned
+        write_port_to_file(port, CONFIG_PATH)  # Write WebSocket port to CONFIG_PATH
+        logging.info(f"WebSocket server started on port {port}")
+        websocket_server_started = True  # Set the flag to indicate the WebSocket server is running
+        loop.run_forever()
+    except Exception as e:
+        logging.error(f"WebSocket server exception: {e}")
+    finally:
+        logging.info("Shutting down WebSocket server...")
+        loop.stop()  # Gracefully stop the event loop
+        loop.close()  # Close the event loop
+        websocket_server_started = False  # Reset the flag when server is stopped
 
 if __name__ == "__main__":
     # Ensure only one Flask server instance
@@ -205,6 +221,8 @@ if __name__ == "__main__":
         logging.info(f"Starting Flask server on port {available_flask_port}...")
         logging.info(f"Using Python executable: {sys.executable}")
         logging.info(f"Scripts directory: {SCRIPTS_DIR}")
-        app.run(debug=True, host='0.0.0.0', port=available_flask_port)
+        
+        # Start the Flask server without the reloader to avoid multiple instances
+        app.run(debug=True, host='0.0.0.0', port=available_flask_port, use_reloader=False)
     else:
         logging.info("Flask server already running, not starting another instance.")
