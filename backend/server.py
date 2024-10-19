@@ -57,16 +57,6 @@ def list_folders():
     except Exception as e:
         logging.error(f"Error listing folders: {e}")
         return jsonify({"error": str(e)}), 500
-    
-@app.route('/get-flask-port', methods=['GET'])
-def get_flask_port():
-    try:
-        with open(PORT_JSON, "r") as file:
-            data = json.load(file)
-        return jsonify({"port": data["port"]}), 200
-    except Exception as e:
-        logging.error(f"Error getting Flask port: {e}")
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/list-scripts', methods=['GET'])

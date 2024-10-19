@@ -333,6 +333,7 @@ async function startApp() {
 
     mainWindow.webContents.once('did-finish-load', () => {
       mainWindow.webContents.send('folder-structure', folderStructure);
+      mainWindow.webContents.send('flask-port', flaskPort);
     });
 
     await downloadPythonFiles();
