@@ -47,8 +47,6 @@ export default function Home() {
       });
     }
 
-    fetchFlaskPort();
-
     const fetchFolders = async () => {
       try {
         const response = await axios.get(`http://localhost:${flaskPort}/list-folders`);
