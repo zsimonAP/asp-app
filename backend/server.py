@@ -3,12 +3,18 @@ import json
 import logging
 import asyncio
 import subprocess
+import sys
 import threading
 import websockets
 import tempfile
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from werkzeug.serving import make_server
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
