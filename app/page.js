@@ -20,19 +20,6 @@ export default function Home() {
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
   const [flaskPort, setFlaskPort] = useState(null);
 
-  const fetchFlaskPort = () => {
-    const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
-    
-    try {
-      const data = fs.readFileSync(flaskPortPath, 'utf-8');
-      const portInfo = JSON.parse(data);
-      setFlaskPort(portInfo.port);
-      console.log(`Flask port is: ${portInfo.port}`);
-    } catch (err) {
-      setError('Failed to fetch Flask port: ' + err.message);
-    }
-  };
-
   useEffect(() => {
     let ipcRenderer;
 
@@ -46,6 +33,12 @@ export default function Home() {
 
       ipcRenderer.on('update-ready', () => {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
+      });
+
+      // Listen for Flask port
+      ipcRenderer.on('flask-port', (event, port) => {
+        setFlaskPort(port);
+        console.log(`Received Flask port: ${port}`);
       });
 
       ipcRenderer.on('folder-structure', (event, folderStructure) => {

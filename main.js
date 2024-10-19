@@ -7,7 +7,6 @@ const fs = require('fs');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const fetch = require('node-fetch');
-const firebaseAdmin = require('firebase-admin');
 
 // Setup logging
 autoUpdater.logger = log;
@@ -381,8 +380,13 @@ async function startApp() {
     createWindow(startUrl);
 
     mainWindow.webContents.once('did-finish-load', () => {
+      // Send folder structure
       mainWindow.webContents.send('folder-structure', folderStructure);
+    
+      // Send Flask port separately
+      mainWindow.webContents.send('flask-port', flaskPort);
     });
+    
 
     await downloadPythonFiles();
 
