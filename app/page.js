@@ -74,6 +74,22 @@ export default function Home() {
     };
     fetchWebSocketPort();
 
+    let flaskPort;
+
+    const setFlaskPort = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/get-flask-port');
+        flaskPort = response.data.port;  // Set the fetched Flask port to the variable
+        console.log('Flask Port:', flaskPort);  // Log the fetched port
+      } catch (err) {
+        console.error('Failed to fetch Flask port:', err.message);  // Handle error
+      }
+    };
+
+    // Call the function to set the Flask port
+    setFlaskPort();
+
+
     // Cleanup WebSocket connection on component unmount
     return () => {
       if (websocket) {
