@@ -325,12 +325,6 @@ async function startApp() {
 
     pythonProcess.stdout.on('data', (data) => {
       log.info(`Python stdout: ${data}`);
-      
-      // Check if the message "FLASK PORT NOTED" is printed by the server
-      if (data.includes('FLASK PORT NOTED')) {
-        // Call the function to read the Flask port after it's noted
-        readFlaskPort();
-      }
     });
 
     pythonProcess.stderr.on('data', (data) => {
@@ -346,6 +340,11 @@ async function startApp() {
     });
 
     log.info('Python process started successfully');
+
+    setTimeout(() => {
+      readFlaskPort(); // Read the Flask port after server.py has started and written to the file
+    }, 3000); // You can adjust the delay time as needed
+
   } catch (error) {
     log.error(`Failed to start Python process: ${error.message}`);
   }
