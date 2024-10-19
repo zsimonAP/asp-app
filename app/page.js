@@ -35,10 +35,16 @@ export default function Home() {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
       });
 
-      // Listen for Flask port
       ipcRenderer.on('flask-port', (event, port) => {
-        setFlaskPort(port);
-        console.log(`Received Flask port: ${port}`);
+        if (port) {
+          setFlaskPort(port);
+          console.log(`Received Flask port: ${port}`);
+
+          // After receiving Flask port, fetch data
+          fetchFolders(port);
+          fetchScripts(port);
+          fetchWebSocketPort(port);
+        }
       });
 
       ipcRenderer.on('folder-structure', (event, folderStructure) => {
@@ -59,7 +65,6 @@ export default function Home() {
         setError('Failed to fetch folder structure: ' + err.message);
       }
     };
-    fetchFolders();
 
     const fetchScripts = async () => {
       try {
@@ -69,7 +74,6 @@ export default function Home() {
         setError('Failed to fetch scripts: ' + err.message);
       }
     };    
-    fetchScripts();
 
     const fetchWebSocketPort = async () => {
       try {
@@ -79,7 +83,6 @@ export default function Home() {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
-    fetchWebSocketPort();
 
     // Cleanup WebSocket connection on component unmount
     return () => {

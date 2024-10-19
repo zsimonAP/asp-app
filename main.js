@@ -380,6 +380,7 @@ async function startApp() {
     createWindow(startUrl);
 
     mainWindow.webContents.once('did-finish-load', () => {
+      console.log(`Sending Flask port to renderer: ${flaskPort}`);
       // Send folder structure
       mainWindow.webContents.send('folder-structure', folderStructure);
     
