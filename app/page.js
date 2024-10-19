@@ -18,19 +18,13 @@ export default function Home() {
   const [folderStructure, setFolderStructure] = useState({}); // Holds folder structure
   const [selectedFolder, setSelectedFolder] = useState(null); // Currently selected folder
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
-  const [flaskPort, setFlaskPort] = useState(null);
+
 
   useEffect(() => {
     let ipcRenderer;
 
     if (typeof window !== 'undefined' && window.require) {
       ipcRenderer = window.require('electron').ipcRenderer;
-
-      ipcRenderer.on('flask-port', (event, port) => {
-        console.log('Received Flask port:', port);
-        setWebsocketPort(port);  // Update WebSocket port state
-        setFlaskPort(port);  // Define and set flaskPort for use with Flask API requests
-      });
 
       // Listen for update events
       ipcRenderer.on('update-in-progress', () => {
@@ -48,7 +42,7 @@ export default function Home() {
     }
     const fetchFolders = async () => {
       try {
-        const response = await axios.get(`http://localhost:${flaskPort}/list-folders`);
+        const response = await axios.get('http://localhost:5001/list-folders');
         const filteredFolders = Object.fromEntries(
           Object.entries(response.data).filter(([key]) => key.trim() !== '')
         );
@@ -62,7 +56,7 @@ export default function Home() {
 
     const fetchScripts = async () => {
       try {
-        const response = await axios.get(`http://localhost:${flaskPort}/list-scripts`);
+        const response = await axios.get('http://localhost:5001/list-scripts');
         setScripts(response.data.scripts);
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
@@ -72,14 +66,13 @@ export default function Home() {
 
     const fetchWebSocketPort = async () => {
       try {
-        const response = await axios.get(`http://localhost:${flaskPort}/get-websocket-port`);
+        const response = await axios.get('http://localhost:5001/get-websocket-port');
         setWebsocketPort(response.data.port);
       } catch (err) {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
     fetchWebSocketPort();
-
 
     // Cleanup WebSocket connection on component unmount
     return () => {
