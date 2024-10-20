@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-const { ipcRenderer } = require('electron');
-const fs = require('fs');
 
 export default function Home() {
   const [scripts, setScripts] = useState([]); // To hold scripts (if needed)
