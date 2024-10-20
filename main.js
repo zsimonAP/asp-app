@@ -144,7 +144,7 @@ function createWindow(url) {
     webPreferences: {
       preload: path.join(app.getAppPath(), 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: true, // Ensures security
+      contextIsolation: false, // Ensures security
     },
   });
 

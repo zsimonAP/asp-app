@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+const { ipcRenderer } = require('electron');
+const fs = require('fs');
 
 export default function Home() {
   const [scripts, setScripts] = useState([]); // To hold scripts (if needed)
@@ -21,10 +23,9 @@ export default function Home() {
   const [flaskPort, setFlaskPort] = useState(null);
 
   useEffect(() => {
-    let ipcRenderer;
-
-    if (typeof window !== 'undefined' && window.require) {
-      ipcRenderer = window.require('electron').ipcRenderer;
+    // Check if we're running in Electron
+    if (typeof window !== 'undefined' && window.process && window.process.type === 'renderer') {
+      const { ipcRenderer } = require('electron'); // Only require Electron in Electron environment
 
       // Listen for update events
       ipcRenderer.on('update-in-progress', () => {
@@ -35,6 +36,7 @@ export default function Home() {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
       });
 
+      // Listen for Flask port
       ipcRenderer.on('flask-port', (event, port) => {
         if (port) {
           setFlaskPort(port);
@@ -42,11 +44,11 @@ export default function Home() {
         }
       });
 
+      // Listen for folder structure
       ipcRenderer.on('folder-structure', (event, folderStructure) => {
         console.log('Received folder structure:', folderStructure); // Log folder structure received
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
-    }
 
     const fetchFolders = async () => {
       try {
@@ -92,6 +94,7 @@ export default function Home() {
         ipcRenderer.removeAllListeners('update-ready');
       }
     };
+  }
   }, [websocket]);
 
   // Handle folder click to display scripts within that folder
