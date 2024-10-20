@@ -17,6 +17,7 @@ log.info('App starting...');
 let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
+let flaskPort = null; 
 
 // Define the path to the Firebase credentials file
 const serviceAccountPath = app.isPackaged
@@ -165,7 +166,6 @@ async function stopAllProcesses() {
   }
   
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(5001); // Kill tasks on port 5001
   killPort(flaskPort);
 
   // Ensure all python.exe processes are forcefully killed on Windows
@@ -180,18 +180,15 @@ async function stopAllProcesses() {
   }
 }
 
-let flaskPort = null;
 
 function getFlaskPort() {
   const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
 
   try {
-    // Check if the file exists
     if (fs.existsSync(flaskPortPath)) {
-      const data = fs.readFileSync(flaskPortPath, 'utf8');  // Read the file
-      const jsonData = JSON.parse(data);  // Parse the JSON content
-      const flaskPort = jsonData.port;  // Extract the port number
-
+      const data = fs.readFileSync(flaskPortPath, 'utf8');
+      const jsonData = JSON.parse(data);
+      flaskPort = jsonData.port;  // Extract the port number
       log.info(`Flask server is running on port: ${flaskPort}`);
       return flaskPort;
     } else {
@@ -204,15 +201,52 @@ function getFlaskPort() {
   }
 }
 
-async function shutdownFlaskServer() {
-  try {
-    // Shutdown the fixed Flask server on port 5001
-    await fetch('http://localhost:5001/shutdown', { method: 'POST' });
-    log.info('Fixed Flask server shutdown initiated on port 5001.');
-  } catch (error) {
-    log.error(`Failed to shutdown fixed Flask server on port 5001: ${error.message}`);
+async function pollFlaskServer() {
+  const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
+  const maxAttempts = 10;
+  const retryInterval = 1000; // Retry every second
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    if (fs.existsSync(flaskPortPath)) {
+      try {
+        const data = fs.readFileSync(flaskPortPath, 'utf8');
+        const jsonData = JSON.parse(data);
+        const port = jsonData.port;
+
+        if (port) {
+          flaskPort = port; // Set the global flaskPort variable
+          log.info(`Flask server port found: ${flaskPort}`);
+
+          // Now confirm the server is running on this port
+          try {
+            const response = await fetch(`http://localhost:${flaskPort}/status`);
+            if (response.ok) {
+              log.info('Flask server is running.');
+              mainWindow.webContents.send('flask-port', flaskPort); // Send flaskPort to renderer
+              break;
+            }
+          } catch (err) {
+            log.info('Flask server not responding yet, retrying...');
+          }
+        }
+      } catch (err) {
+        log.error(`Error reading Flask port from JSON file: ${err.message}`);
+      }
+    } else {
+      log.info('Waiting for flask_port.json to be created...');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, retryInterval));
+    attempts++;
   }
 
+  if (!flaskPort) {
+    log.error('Flask server failed to start within the expected time.');
+  }
+}
+
+async function shutdownFlaskServer() {
   if (flaskPort) {
     try {
       // Shutdown the dynamic Flask server on the global `flaskPort`
@@ -378,10 +412,7 @@ async function startApp() {
 
     log.info('Python process started successfully');
 
-    const flaskPort = getFlaskPort();  // Get the Flask port
-    if (flaskPort) {
-      log.info(`Flask server is running on port: ${flaskPort}`);
-    }
+    await pollFlaskServer();
 
   } catch (error) {
     log.error(`Failed to start Python process: ${error.message}`);
@@ -487,7 +518,6 @@ app.on('window-all-closed', async function () {
     pythonProcess.kill();
   }
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(5001); // Kill tasks on port 5001 when all windows are closed
   killPort(flaskPort);
 
   const localAppDataPath = process.env.LOCALAPPDATA;

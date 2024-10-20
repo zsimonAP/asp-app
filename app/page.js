@@ -20,109 +20,100 @@ export default function Home() {
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
   const [flaskPort, setFlaskPort] = useState(null);
 
-  // Helper function to delay execution
-  const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+ // Listen for flaskPort from main.js
+ useEffect(() => {
+  let ipcRenderer;
 
-  // Poll the server until it responds
-  const waitForServer = async () => {
-    let attempts = 0;
-    const maxAttempts = 10; // Adjust as needed
-    const retryInterval = 1000; // Retry every second
+  if (typeof window !== 'undefined' && window.require) {
+    ipcRenderer = window.require('electron').ipcRenderer;
 
-    while (attempts < maxAttempts) {
-      try {
-        const response = await axios.get('http://localhost:5001/get-flask-port');
-        if (response.status === 200) {
-          return response.data.port;
-        }
-      } catch (err) {
-        console.log('Waiting for server to start...');
-      }
+    // Listen for update events
+    ipcRenderer.on('update-in-progress', () => {
+      setUpdateMessage('Update in progress, please wait and follow the instructions to complete installation.');
+    });
 
-      await delay(retryInterval);
-      attempts++;
+    ipcRenderer.on('update-ready', () => {
+      setUpdateMessage('Update downloaded. The application will restart to complete the update.');
+    });
+
+    // Listen for the Flask port sent from main.js
+    ipcRenderer.on('flask-port', (event, port) => {
+      console.log('Received Flask port:', port);
+      setFlaskPort(port); // Set Flask port when received
+    });
+
+    ipcRenderer.on('folder-structure', (event, folderStructure) => {
+      console.log('Received folder structure:', folderStructure); // Log folder structure received
+      setFolderStructure(folderStructure);  // Store folder structure in state
+    });
+  }
+}, []);
+
+// Initialize the app after the flaskPort is received
+useEffect(() => {
+  // Only attempt to initialize the app when flaskPort is available
+  if (flaskPort) {
+    initializeApp(flaskPort);
+  }
+}, [flaskPort]);
+
+const fetchFolders = async (port) => {
+  try {
+    const response = await axios.get(`http://localhost:${port}/list-folders`);
+    const filteredFolders = Object.fromEntries(
+      Object.entries(response.data).filter(([key]) => key.trim() !== '')
+    );
+    setFolderStructure(filteredFolders);
+  } catch (err) {
+    setError('Failed to fetch folder structure: ' + err.message);
+  }
+};
+
+const fetchScripts = async (port) => {
+  try {
+    const response = await axios.get(`http://localhost:${port}/list-scripts`);
+    setScripts(response.data.scripts);
+  } catch (err) {
+    setError('Failed to fetch scripts: ' + err.message);
+  }
+};
+
+const fetchWebSocketPort = async (port) => {
+  try {
+    const response = await axios.get(`http://localhost:${port}/get-websocket-port`);
+    setWebsocketPort(response.data.port);
+  } catch (err) {
+    setError('Failed to fetch WebSocket port: ' + err.message);
+  }
+};
+
+const initializeApp = async (port) => {
+  try {
+    await fetchFolders(port);
+    await fetchScripts(port);
+    await fetchWebSocketPort(port);
+  } catch (err) {
+    setError('Error initializing the app: ' + err.message);
+  }
+};
+
+// Cleanup WebSocket connection on component unmount
+useEffect(() => {
+  return () => {
+    if (websocket) {
+      websocket.close();
     }
-
-    throw new Error('Server failed to start within the expected time.');
   };
+}, [websocket]);
 
-  useEffect(() => {
-    let ipcRenderer;
-
-    if (typeof window !== 'undefined' && window.require) {
-      ipcRenderer = window.require('electron').ipcRenderer;
-
-      // Listen for update events
-      ipcRenderer.on('update-in-progress', () => {
-        setUpdateMessage('Update in progress, please wait and follow the instructions to complete installation.');
-      });
-
-      ipcRenderer.on('update-ready', () => {
-        setUpdateMessage('Update downloaded. The application will restart to complete the update.');
-      });
-
-      ipcRenderer.on('folder-structure', (event, folderStructure) => {
-        console.log('Received folder structure:', folderStructure); // Log folder structure received
-        setFolderStructure(folderStructure);  // Store folder structure in state
-      });
-    }
-
-    const fetchFolders = async (port) => {
-      try {
-        const response = await axios.get(`http://localhost:${port}/list-folders`);
-        const filteredFolders = Object.fromEntries(
-          Object.entries(response.data).filter(([key]) => key.trim() !== '')
-        );
-        console.log('Filtered folder structure:', filteredFolders); // Log folder structure
-        setFolderStructure(filteredFolders); // Set the folder structure from Flask without blank folders
-      } catch (err) {
-        setError('Failed to fetch folder structure: ' + err.message);
-      }
-    };
-
-    const fetchScripts = async (port) => {
-      try {
-        const response = await axios.get(`http://localhost:${port}/list-scripts`);
-        setScripts(response.data.scripts);
-      } catch (err) {
-        setError('Failed to fetch scripts: ' + err.message);
-      }
-    };    
-
-    const fetchWebSocketPort = async (port) => {
-      try {
-        const response = await axios.get(`http://localhost:${port}/get-websocket-port`);
-        setWebsocketPort(response.data.port);
-      } catch (err) {
-        setError('Failed to fetch WebSocket port: ' + err.message);
-      }
-    };
-
-    const initialize = async () => {
-      try {
-        const port = await waitForServer();  // Poll the server for readiness
-        setFlaskPort(port);  // Set the Flask port once server is ready
-        await fetchFolders(port);
-        await fetchScripts(port);
-        await fetchWebSocketPort(port);
-      } catch (err) {
-        setError('Error initializing the app: ' + err.message);
-      }
-    };
-
-    initialize();
-
-    // Cleanup WebSocket connection on component unmount
-    return () => {
-      if (websocket) {
-        websocket.close();
-      }
-      if (ipcRenderer) {
-        ipcRenderer.removeAllListeners('update-in-progress');
-        ipcRenderer.removeAllListeners('update-ready');
-      }
-    };
-  }, [websocket]);
+// Show loading message until flaskPort is received
+if (!flaskPort) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <h1 className="text-2xl font-bold text-white">Loading, please wait...</h1>
+    </div>
+  );
+}
 
   // Handle folder click to display scripts within that folder
   const handleFolderClick = (folder) => {

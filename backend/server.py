@@ -42,10 +42,6 @@ logging.info(f"Scripts directory: {SCRIPTS_DIR}")
 app_dynamic = Flask(__name__)
 CORS(app_dynamic)
 
-# Flask setup (for port 5001)
-app_fixed = Flask(__name__)
-CORS(app_fixed)
-
 # Create dynamic port for second Flask server
 def get_available_port():
     while True:
@@ -101,25 +97,6 @@ def shutdown():
         raise RuntimeError('Not running with the Werkzeug Server')
     func()
     return 'Server shutting down...', 200
-
-
-# New route to return the dynamic Flask port
-@app_fixed.route('/get-flask-port', methods=['GET'])
-def get_flask_port():
-    try:
-        with open(FLASK_PORT_PATH, "r") as file:
-            data = json.load(file)
-        return jsonify({"port": data["port"]}), 200
-    except Exception as e:
-        logging.error(f"Error getting Flask port: {e}")
-        return jsonify({"error": str(e)}), 500
-
-
-# Start Flask on port 5001 (minimal status endpoint)
-@app_fixed.route('/status', methods=['GET'])
-def status():
-    return jsonify({"status": "Running on port 5001, but no operations here."}), 200
-
 
 # WebSocket handler
 async def handler(websocket, path):
@@ -201,11 +178,6 @@ def start_websocket_server():
         logging.error(f"Failed to start WebSocket server: {e}")
 
 
-def run_flask_fixed():
-    logging.info("Starting Flask server on port 5001...")
-    app_fixed.run(debug=False, host='0.0.0.0', port=5001)
-
-
 def run_flask_dynamic():
     available_port = get_available_port()
     logging.info(f"Starting Flask server on dynamic port {available_port}...")
@@ -213,21 +185,15 @@ def run_flask_dynamic():
 
 
 if __name__ == "__main__":
-    # Start the fixed Flask server in one thread
-    fixed_flask_thread = threading.Thread(target=run_flask_fixed)
-    fixed_flask_thread.start()
-    
-    # Start the dynamic Flask server in another thread
+    # Start the dynamic Flask server in one thread
     dynamic_flask_thread = threading.Thread(target=run_flask_dynamic)
     dynamic_flask_thread.start()
     
-    # Start the WebSocket server after the Flask servers
+    # Start the WebSocket server after the Flask server
     logging.info("Starting WebSocket server...")
     websocket_thread = threading.Thread(target=start_websocket_server)
     websocket_thread.start()
 
     # Join threads to ensure they run properly and capture any issues
-    fixed_flask_thread.join()
     dynamic_flask_thread.join()
     websocket_thread.join()
-
