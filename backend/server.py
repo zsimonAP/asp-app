@@ -104,7 +104,7 @@ def shutdown():
 
 
 # New route to return the dynamic Flask port
-@app_dynamic.route('/get-flask-port', methods=['GET'])
+@app_fixed.route('/get-flask-port', methods=['GET'])
 def get_flask_port():
     try:
         with open(FLASK_PORT_PATH, "r") as file:
