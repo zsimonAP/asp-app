@@ -38,6 +38,7 @@ try {
   app.quit();
 }
 
+
 firebaseAdmin.initializeApp({
   credential: firebaseAdmin.credential.cert(serviceAccount),
   storageBucket: 'gs://asp-app-36e09.appspot.com', // Replace with your Firebase project ID
@@ -144,7 +145,7 @@ function createWindow(url) {
     webPreferences: {
       preload: path.join(app.getAppPath(), 'preload.js'),
       nodeIntegration: true,
-      contextIsolation: false, // Ensures security
+      contextIsolation: true, // Ensures security
     },
   });
 
@@ -164,7 +165,8 @@ async function stopAllProcesses() {
   }
   
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(flaskPort); // Kill tasks on port flaskPort
+  killPort(5001); // Kill tasks on port 5001
+  killPort(flaskPort);
 
   // Ensure all python.exe processes are forcefully killed on Windows
   try {
@@ -178,15 +180,52 @@ async function stopAllProcesses() {
   }
 }
 
+let flaskPort = null;
+
+function getFlaskPort() {
+  const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
+
+  try {
+    // Check if the file exists
+    if (fs.existsSync(flaskPortPath)) {
+      const data = fs.readFileSync(flaskPortPath, 'utf8');  // Read the file
+      const jsonData = JSON.parse(data);  // Parse the JSON content
+      const flaskPort = jsonData.port;  // Extract the port number
+
+      log.info(`Flask server is running on port: ${flaskPort}`);
+      return flaskPort;
+    } else {
+      log.error(`Flask port file not found at: ${flaskPortPath}`);
+      return null;
+    }
+  } catch (error) {
+    log.error(`Failed to read Flask port file: ${error.message}`);
+    return null;
+  }
+}
 
 async function shutdownFlaskServer() {
   try {
-    await fetch(`http://localhost:${flaskPort}/shutdown`, { method: 'POST' });
-    log.info('Flask server shutdown initiated.');
+    // Shutdown the fixed Flask server on port 5001
+    await fetch('http://localhost:5001/shutdown', { method: 'POST' });
+    log.info('Fixed Flask server shutdown initiated on port 5001.');
   } catch (error) {
-    log.error(`Failed to shutdown Flask server: ${error.message}`);
+    log.error(`Failed to shutdown fixed Flask server on port 5001: ${error.message}`);
+  }
+
+  if (flaskPort) {
+    try {
+      // Shutdown the dynamic Flask server on the global `flaskPort`
+      await fetch(`http://localhost:${flaskPort}/shutdown`, { method: 'POST' });
+      log.info(`Dynamic Flask server shutdown initiated on port ${flaskPort}.`);
+    } catch (error) {
+      log.error(`Failed to shutdown dynamic Flask server on port ${flaskPort}: ${error.message}`);
+    }
+  } else {
+    log.error('Dynamic Flask port not available for shutdown.');
   }
 }
+
 
 function deleteDirectory(directoryPath) {
   if (fs.existsSync(directoryPath)) {
@@ -256,101 +295,7 @@ function killPort(port) {
   }
 }
 
-// Global variable to store the Flask port
-let flaskPort = null;
-
-// Function to read the Flask port from the JSON file
-function readFlaskPort() {
-  const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
-  
-  try {
-    const data = fs.readFileSync(flaskPortPath, 'utf-8');
-    const portInfo = JSON.parse(data);
-    flaskPort = portInfo.port;
-    log.info(`Flask port read from file: ${flaskPort}`);
-  } catch (error) {
-    log.error(`Failed to read Flask port from file: ${error.message}`);
-  }
-}
-
 async function startApp() {
-  const appRootPath = process.resourcesPath; // Points to the resources directory
-  const pythonHome = path.join(appRootPath, 'env');
-  const pythonPath = path.join(pythonHome, 'python.exe');
-  const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
-
-  // Set environment variables
-  process.env.PYTHONHOME = pythonHome;
-  process.env.PYTHONPATH = pythonPathEnv;
-  process.env.PYTHONEXECUTABLE = pythonPath;
-  process.env.PYTHONNOUSERSITE = '1';
-  process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
-
-  log.info(`Python path: ${pythonPath}`);
-  log.info(`Python home: ${pythonHome}`);
-  log.info(`Python path environment: ${pythonPathEnv}`);
-  log.info(`Environment PATH: ${process.env.PATH}`);
-  log.info(`Environment PYTHONHOME: ${process.env.PYTHONHOME}`);
-  log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
-  log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
-
-  const serverScriptPath = path.join(appRootPath, 'backend', 'server.py');
-  log.info(`Server script path: ${serverScriptPath}`);
-
-  if (!fs.existsSync(pythonPath)) {
-    log.error(`Python executable not found at: ${pythonPath}`);
-    app.quit();
-    return;
-  }
-
-  if (!fs.existsSync(serverScriptPath)) {
-    log.error(`Server script not found: ${serverScriptPath}`);
-    app.quit();
-    return;
-  }
-
-  try {
-    log.info('Spawning Python process with the following command:');
-    log.info(`Command: ${pythonPath} ${serverScriptPath}`);
-
-    pythonProcess = spawn(pythonPath, [serverScriptPath], {
-      env: {
-        ...process.env,
-        PYTHONHOME: pythonHome,
-        PYTHONPATH: pythonPathEnv,
-        PYTHONEXECUTABLE: pythonPath,
-        PATH: `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`,
-      },
-    });
-
-    pythonProcess.stdout.on('data', (data) => {
-      log.info(`Python stdout: ${data}`);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      log.error(`Python stderr: ${data}`);
-    });
-
-    pythonProcess.on('error', (err) => {
-      log.error(`Python process failed to start: ${err.message}`);
-    });
-
-    pythonProcess.on('exit', (code, signal) => {
-      log.info(`Python process exited with code ${code} and signal ${signal}`);
-    });
-
-    log.info('Python process started successfully');
-
-    setTimeout(() => {
-      readFlaskPort(); // Read the Flask port after server.py has started and written to the file
-
-      console.log(`Sending Flask port to renderer: ${flaskPort}`);
-      mainWindow.webContents.send('flask-port', flaskPort);
-    }, 3000); // You can adjust the delay time as needed
-
-  } catch (error) {
-    log.error(`Failed to start Python process: ${error.message}`);
-  }
 
   const nextAppPath = path.join(__dirname, '.next');
   log.info(`Checking Next.js build files at: ${nextAppPath}`);
@@ -377,17 +322,14 @@ async function startApp() {
       log.info('> Ready on http://localhost:3000');
     });
 
+    const folderStructure = await getFolderStructure();
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
 
-    const folderStructure = await getFolderStructure();
-    log.info('Sending folder structure to renderer:', folderStructure);
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('folder-structure', folderStructure);
+    });
 
-    if (mainWindow) {
-      mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.send('folder-structure', folderStructure);
-      });
-    }
     await downloadPythonFiles();
 
     log.info('App started successfully.');
@@ -395,6 +337,96 @@ async function startApp() {
     log.error(`Failed to start the app: ${error.message}`);
     app.quit();
   }
+
+    const appRootPath = process.resourcesPath; // Points to the resources directory
+
+    const pythonHome = path.join(appRootPath, 'env');
+    const pythonPath = path.join(pythonHome, 'python.exe');
+    const pythonPathEnv = path.join(pythonHome, 'Lib', 'site-packages');
+
+    // Set environment variables
+    process.env.PYTHONHOME = pythonHome;
+    process.env.PYTHONPATH = pythonPathEnv;
+    process.env.PYTHONEXECUTABLE = pythonPath;
+    process.env.PYTHONNOUSERSITE = '1';
+    process.env.PATH = `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`;
+
+    log.info(`Python path: ${pythonPath}`);
+    log.info(`Python home: ${pythonHome}`);
+    log.info(`Python path environment: ${pythonPathEnv}`);
+    log.info(`Environment PATH: ${process.env.PATH}`);
+    log.info(`Environment PYTHONHOME: ${process.env.PYTHONHOME}`);
+    log.info(`Environment PYTHONPATH: ${process.env.PYTHONPATH}`);
+    log.info(`Environment PYTHONEXECUTABLE: ${process.env.PYTHONEXECUTABLE}`);
+
+    const serverScriptPath = path.join(appRootPath, 'backend', 'server.py');
+    log.info(`Server script path: ${serverScriptPath}`);
+
+    if (!fs.existsSync(pythonPath)) {
+      log.error(`Python executable not found at: ${pythonPath}`);
+      app.quit();
+      return;
+    }
+
+    if (!fs.existsSync(serverScriptPath)) {
+      log.error(`Server script not found: ${serverScriptPath}`);
+      app.quit();
+      return;
+    }
+
+    try {
+      log.info('Spawning Python process with the following command:');
+      log.info(`Command: ${pythonPath} ${serverScriptPath}`);
+      log.info(
+        'Environment Variables:',
+        JSON.stringify(
+          {
+            PYTHONHOME: process.env.PYTHONHOME,
+            PYTHONPATH: process.env.PYTHONPATH,
+            PYTHONEXECUTABLE: process.env.PYTHONEXECUTABLE,
+            PATH: process.env.PATH,
+          },
+          null,
+          2
+        )
+      );
+
+      pythonProcess = spawn(pythonPath, [serverScriptPath], {
+        env: {
+          ...process.env,
+          PYTHONHOME: pythonHome,
+          PYTHONPATH: pythonPathEnv,
+          PYTHONEXECUTABLE: pythonPath,
+          PATH: `${path.dirname(pythonPath)}${path.delimiter}${process.env.PATH}`,
+        },
+      });
+
+      pythonProcess.stdout.on('data', (data) => {
+        log.info(`Python stdout: ${data}`);
+      });
+
+      pythonProcess.stderr.on('data', (data) => {
+        log.error(`Python stderr: ${data}`);
+      });
+
+      pythonProcess.on('error', (err) => {
+        log.error(`Python process failed to start: ${err.message}`);
+      });
+
+      pythonProcess.on('exit', (code, signal) => {
+        log.info(`Python process exited with code ${code} and signal ${signal}`);
+      });
+
+      log.info('Python process started successfully');
+
+      const flaskPort = getFlaskPort();  // Get the Flask port
+      if (flaskPort) {
+        log.info(`Flask server is running on port: ${flaskPort}`);
+      }
+
+    } catch (error) {
+      log.error(`Failed to start Python process: ${error.message}`);
+    }
 }
 
 let appStarted = false;  // Flag to ensure app only starts once
@@ -455,7 +487,8 @@ app.on('window-all-closed', async function () {
     pythonProcess.kill();
   }
   await shutdownFlaskServer(); // Shutdown Flask server
-  killPort(flaskPort); // Kill tasks on port flaskPort when all windows are closed
+  killPort(5001); // Kill tasks on port 5001 when all windows are closed
+  killPort(flaskPort);
 
   const localAppDataPath = process.env.LOCALAPPDATA;
   const destinationDir = path.join(localAppDataPath, 'associated-pension-automation-hub', 'backend', 'scripts');

@@ -35,17 +35,21 @@ export default function Home() {
         setUpdateMessage('Update downloaded. The application will restart to complete the update.');
       });
 
-      ipcRenderer.on('flask-port', (event, port) => {
-        if (port) {
-          setFlaskPort(port);
-          console.log(`Received Flask port: ${port}`);
-        }
-      });
-
       ipcRenderer.on('folder-structure', (event, folderStructure) => {
         console.log('Received folder structure:', folderStructure); // Log folder structure received
         setFolderStructure(folderStructure);  // Store folder structure in state
       });
+    }
+
+    // Fetch the dynamic Flask port from the Electron backend
+    const fetchFlaskPort = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/get-flask-port'); // Still use port 5001 for this
+        setFlaskPort(response.data.port);  // Set the dynamically assigned port
+      } catch (err) {
+        setError('Failed to fetch Flask port: ' + err.message);
+      }
+    };
 
     const fetchFolders = async () => {
       try {
@@ -59,7 +63,6 @@ export default function Home() {
         setError('Failed to fetch folder structure: ' + err.message);
       }
     };
-    fetchFolders()
 
     const fetchScripts = async () => {
       try {
@@ -68,8 +71,7 @@ export default function Home() {
       } catch (err) {
         setError('Failed to fetch scripts: ' + err.message);
       }
-    };  
-    fetchScripts()  
+    };    
 
     const fetchWebSocketPort = async () => {
       try {
@@ -79,7 +81,11 @@ export default function Home() {
         setError('Failed to fetch WebSocket port: ' + err.message);
       }
     };
-    fetchWebSocketPort()
+
+    fetchFlaskPort()
+      .then(fetchFolders)
+      .then(fetchScripts)
+      .then(fetchWebSocketPort);
 
     // Cleanup WebSocket connection on component unmount
     return () => {
@@ -91,7 +97,6 @@ export default function Home() {
         ipcRenderer.removeAllListeners('update-ready');
       }
     };
-  }
   }, [websocket]);
 
   // Handle folder click to display scripts within that folder
