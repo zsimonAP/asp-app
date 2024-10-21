@@ -216,8 +216,7 @@ async function pollForFlaskPort() {
     const flaskPort = getFlaskPort();
 
     if (flaskPort) {
-      log.info('Sending flask port to page.js');
-      mainWindow.webContents.send('flask-port', flaskPort); // Send flaskPort to renderer
+      log.info('OBTAINED FLASK PORT');
       break; // Exit the loop if the port is found
     } else {
       log.info(`Attempt ${attempts + 1}: Flask port not available yet, retrying...`);
@@ -436,7 +435,9 @@ async function startApp() {
     createWindow(startUrl);
 
     mainWindow.webContents.once('did-finish-load', async () => {
+      log.info('SENDING FLASK PORT');
       mainWindow.webContents.send('flask-port', flaskPort);
+      log.info('SENT FLASK PORT');
       mainWindow.webContents.send('folder-structure', folderStructure);
     });
 

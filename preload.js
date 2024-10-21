@@ -4,6 +4,7 @@ import { join as _join } from 'path';
 
 // Define valid channels for IPC communication
 const validChannels = ['flask-port', 'folder-structure'];
+console.log('preload.js loaded');
 
 // Expose APIs to the renderer process securely
 contextBridge.exposeInMainWorld('electron', {
