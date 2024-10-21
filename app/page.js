@@ -20,50 +20,34 @@ export default function Home() {
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
   const [flaskPort, setFlaskPort] = useState(null);
 
-  // Pull the flaskPort from flask_port.json directly
-  useEffect(() => {
-    const fs = window.require('fs');
-    const path = window.require('path');
-
-    // Path to the JSON file
-    const flaskPortPath = path.join(
-      process.env.LOCALAPPDATA,
-      'associated-pension-automation-hub',
-      'flask_port.json'
-    );
-
-    try {
-      // Read the port from the JSON file
-      const data = fs.readFileSync(flaskPortPath, 'utf8');
-      const jsonData = JSON.parse(data);
-      const port = jsonData.port;
-
-      if (port) {
-        setFlaskPort(port); // Set the port in state once it's retrieved
-        console.log(`Flask server port found: ${port}`);
-      } else {
-        console.error('No port found in the JSON file.');
-      }
-    } catch (error) {
-      console.error('Failed to read flask_port.json:', error);
-    }
-  }, []);
-
-  // Initialize the app after the flaskPort is received
-  useEffect(() => {
-    if (!flaskPort) return;
-
-    const initializeApp = async (port) => {
-      try {
-        await fetchFolders(port);
-        await fetchScripts(port);
-        await fetchWebSocketPort(port);
-      } catch (err) {
-        setError('Error initializing the app: ' + err.message);
-      }
-    };
-
-    initializeApp(flaskPort);
+    // Listen for flaskPort from main.js using ipcRenderer
+    useEffect(() => {
+      window.electron.ipcRenderer.on('flask-port', (event, port) => {
+        console.log(`Received Flask port: ${port}`);
+        setFlaskPort(port);  // Set the received port in state
+      });
+  
+      return () => {
+        window.electron.ipcRenderer.removeAllListeners('flask-port');
+      };
+    }, []);
+  
+    // Initialize the app after the flaskPort is received
+    useEffect(() => {
+      if (!flaskPort) return;
+  
+      const initializeApp = async (port) => {
+        try {
+          await fetchFolders(port);
+          await fetchScripts(port);
+          await fetchWebSocketPort(port);
+        } catch (err) {
+          setError('Error initializing the app: ' + err.message);
+        }
+      };
+  
+      initializeApp(flaskPort);
+    }, [flaskPort]);
 
     // Fetch folders from Flask server
     const fetchFolders = async (port) => {
@@ -98,7 +82,6 @@ export default function Home() {
       }
     };
     
-  }, [flaskPort]);
 
   // Cleanup WebSocket connection on component unmount
   useEffect(() => {
@@ -425,5 +408,4 @@ export default function Home() {
       )}
     </div>
   );
-
 }
