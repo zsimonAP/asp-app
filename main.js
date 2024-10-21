@@ -398,6 +398,7 @@ async function startApp() {
     });
 
     log.info('Python process started successfully');
+    await pollForFlaskPort();
 
 
   } catch (error) {
@@ -435,7 +436,7 @@ async function startApp() {
     createWindow(startUrl);
 
     mainWindow.webContents.once('did-finish-load', async () => {
-      await pollForFlaskPort();
+      mainWindow.webContents.send('flask-port', flaskPort);
       mainWindow.webContents.send('folder-structure', folderStructure);
     });
 
