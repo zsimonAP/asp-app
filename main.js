@@ -221,10 +221,12 @@ async function pollFlaskServer() {
           // Now confirm the server is running on this port
           try {
             const response = await fetch(`http://localhost:${flaskPort}/status`);
-            if (response.ok) {
+            const jsonResponse = await response.json(); // Parse the JSON response
+
+            if (jsonResponse.status === 'running') { // Check the "status" field in the JSON
               log.info('Flask server is running.');
               mainWindow.webContents.send('flask-port', flaskPort); // Send flaskPort to renderer
-              break;
+              break; // Exit the loop if server is running
             }
           } catch (err) {
             log.info('Flask server not responding yet, retrying...');
@@ -245,6 +247,8 @@ async function pollFlaskServer() {
     log.error('Flask server failed to start within the expected time.');
   }
 }
+
+
 
 async function shutdownFlaskServer() {
   if (flaskPort) {
