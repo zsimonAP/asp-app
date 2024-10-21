@@ -189,8 +189,14 @@ function getFlaskPort() {
       const data = fs.readFileSync(flaskPortPath, 'utf8');
       const jsonData = JSON.parse(data);
       flaskPort = jsonData.port;  // Extract the port number
-      log.info(`Flask server is running on port: ${flaskPort}`);
-      return flaskPort;
+
+      if (flaskPort) {
+        log.info(`Flask server is running on port: ${flaskPort}`);
+        return flaskPort;
+      } else {
+        log.error('Flask port not found in flask_port.json');
+        return null;
+      }
     } else {
       log.error(`Flask port file not found at: ${flaskPortPath}`);
       return null;
@@ -201,54 +207,31 @@ function getFlaskPort() {
   }
 }
 
-async function pollFlaskServer() {
-  const flaskPortPath = path.join(process.env.LOCALAPPDATA, 'associated-pension-automation-hub', 'flask_port.json');
+async function pollForFlaskPort() {
   const maxAttempts = 10;
   const retryInterval = 1000; // Retry every second
   let attempts = 0;
 
   while (attempts < maxAttempts) {
-    if (fs.existsSync(flaskPortPath)) {
-      try {
-        const data = fs.readFileSync(flaskPortPath, 'utf8');
-        const jsonData = JSON.parse(data);
-        const port = jsonData.port;
+    const flaskPort = getFlaskPort();
 
-        if (port) {
-          flaskPort = port; // Set the global flaskPort variable
-          log.info(`Flask server port found: ${flaskPort}`);
-
-          // Now confirm the server is running on this port
-          try {
-            const response = await fetch(`http://localhost:${flaskPort}/status`);
-            const jsonResponse = await response.json(); // Parse the JSON response
-
-            if (jsonResponse.status === 'running') { // Check the "status" field in the JSON
-              log.info('Flask server is running.');
-              mainWindow.webContents.send('flask-port', flaskPort); // Send flaskPort to renderer
-              break; // Exit the loop if server is running
-            }
-          } catch (err) {
-            log.info('Flask server not responding yet, retrying...');
-          }
-        }
-      } catch (err) {
-        log.error(`Error reading Flask port from JSON file: ${err.message}`);
-      }
+    if (flaskPort) {
+      log.info('Sending flask port to page.js');
+      mainWindow.webContents.send('flask-port', flaskPort); // Send flaskPort to renderer
+      break; // Exit the loop if the port is found
     } else {
-      log.info('Waiting for flask_port.json to be created...');
+      log.info(`Attempt ${attempts + 1}: Flask port not available yet, retrying...`);
     }
 
+    // Wait for the next retry interval before checking again
     await new Promise((resolve) => setTimeout(resolve, retryInterval));
     attempts++;
   }
 
-  if (!flaskPort) {
-    log.error('Flask server failed to start within the expected time.');
+  if (attempts === maxAttempts) {
+    log.error('Flask port not found after max retries.');
   }
 }
-
-
 
 async function shutdownFlaskServer() {
   if (flaskPort) {
@@ -416,7 +399,7 @@ async function startApp() {
 
     log.info('Python process started successfully');
 
-    await pollFlaskServer();
+    await pollForFlaskPort();
 
   } catch (error) {
     log.error(`Failed to start Python process: ${error.message}`);
