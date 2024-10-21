@@ -144,7 +144,9 @@ function createWindow(url) {
     height: 1000,
     icon: path.join(app.getAppPath(), 'app-icon.ico'),
     webPreferences: {
-      preload: path.join(app.getAppPath(), 'preload.js'), // Securely expose necessary APIs here
+      preload: app.isPackaged
+        ? path.join(process.resourcesPath, 'preload.js')  // When packaged
+        : path.join(__dirname, 'preload.js'),
       nodeIntegration: false,  // Keep this off unless absolutely necessary
       contextIsolation: true,  // Isolate context for security
     },
