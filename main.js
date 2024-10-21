@@ -155,7 +155,7 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
-preloadPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'preload.js');
+const preloadPath = path.join(__dirname, 'preload.js');
 console.log(`Preload path: ${preloadPath}`);
 
 if (!fs.existsSync(preloadPath)) {
