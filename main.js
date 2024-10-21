@@ -19,6 +19,24 @@ let mainWindow;
 let isUpdateInProgress = false;
 let flaskPort = null; 
 
+// Expose a limited API to the renderer process (simulating preload.js functionality)
+ipcMain.handle('ipcRenderer-send', (event, channel, data) => {
+  console.log(`Sending message from renderer: ${channel} with data: ${data}`);
+  mainWindow.webContents.send(channel, data);
+});
+
+ipcMain.on('ipcRenderer-on', (event, channel, data) => {
+  console.log(`Listening for message from renderer: ${channel}`);
+  event.sender.send(channel, data);
+});
+
+ipcMain.on('ipcRenderer-removeAllListeners', (event, channel) => {
+  console.log(`Removing all listeners from channel: ${channel}`);
+  mainWindow.webContents.removeAllListeners(channel);
+});
+
+console.log('Main process ready and IPC exposed');
+
 // Define the path to the Firebase credentials file
 const serviceAccountPath = app.isPackaged
   ? path.join(process.resourcesPath, 'firebase-credentials.json')  // When the app is packaged
