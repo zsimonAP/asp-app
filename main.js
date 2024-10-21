@@ -179,7 +179,7 @@ function createWindow(url) {
     webPreferences: {
       preload: preloadPath,
       nodeIntegration: false,  // Keep this off unless absolutely necessary
-      contextIsolation: false,  // Isolate context for security
+      contextIsolation: true,  // Isolate context for security
     },
   });
 
