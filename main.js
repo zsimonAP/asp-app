@@ -155,6 +155,8 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
+const preloadPath = path.join(app.getAppPath(), 'preload.js');
+console.log(`Preload path: ${preloadPath}`);
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
@@ -162,9 +164,7 @@ function createWindow(url) {
     height: 1000,
     icon: path.join(app.getAppPath(), 'app-icon.ico'),
     webPreferences: {
-      preload: app.isPackaged
-        ? path.join(process.resourcesPath, 'preload.js')  // When packaged
-        : path.join(__dirname, 'preload.js'),
+      preload: preloadPath,
       nodeIntegration: false,  // Keep this off unless absolutely necessary
       contextIsolation: true,  // Isolate context for security
     },

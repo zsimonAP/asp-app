@@ -1,14 +1,11 @@
-const { contextBridge, ipcRenderer } = require('electron');
+import { contextBridge, ipcRenderer } from 'electron';
 
-console.log('preload.js is loaded');
-
-// Expose a limited API to the renderer process
+console.log(`Preload.js active`);
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
+    on: (channel, listener) => ipcRenderer.on(channel, listener),
+    once: (channel, listener) => ipcRenderer.once(channel, listener),
     send: (channel, data) => ipcRenderer.send(channel, data),
-    on: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(...args)),
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
   },
 });
-
-console.log('preload.js loaded and ipcRenderer exposed');

@@ -22,11 +22,11 @@ export default function Home() {
 
     // Listen for flaskPort from main.js using ipcRenderer
     useEffect(() => {
-      // Use the ipcRenderer exposed through the contextBridge
       if (window?.electron?.ipcRenderer) {
+        console.log('ipcRenderer is defined');
         window.electron.ipcRenderer.on('flask-port', (event, port) => {
           console.log(`Received Flask port: ${port}`);
-          setFlaskPort(port);  // Set the received port in state
+          setFlaskPort(port);
         });
     
         return () => {
@@ -36,6 +36,7 @@ export default function Home() {
         console.error('ipcRenderer is undefined');
       }
     }, []);
+    
     
   
     // Initialize the app after the flaskPort is received
