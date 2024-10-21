@@ -164,13 +164,6 @@ if (!fs.existsSync(preloadPath)) {
   console.log(`preload.js found at ${preloadPath}`);
 }
 
-try {
-  require(preloadPath);  // This will manually execute preload.js
-  console.log('Manually executed preload.js');
-} catch (error) {
-  console.error('Failed to execute preload.js manually:', error);
-}
-
 function createWindow(url) {
   mainWindow = new BrowserWindow({
     width: 1400,

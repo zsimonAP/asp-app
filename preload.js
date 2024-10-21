@@ -1,17 +1,25 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-try {
-  console.log('preload.js is loaded');
-
-  contextBridge.exposeInMainWorld('electron', {
-    ipcRenderer: {
-      send: (channel, data) => ipcRenderer.send(channel, data),
-      invoke: (channel, data) => ipcRenderer.invoke(channel, data),
-      on: (channel, listener) => ipcRenderer.on(channel, listener),
-      once: (channel, listener) => ipcRenderer.once(channel, listener),
-      removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+// Exposing limited API to the renderer process
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    send: (channel, data) => {
+      const validChannels = ['flask-port', 'folder-structure']; // List valid channels
+      if (validChannels.includes(channel)) {
+        ipcRenderer.send(channel, data);
+      }
     },
-  });
-} catch (error) {
-  console.error('Error in preload.js:', error);
-}
+    on: (channel, func) => {
+      const validChannels = ['flask-port', 'folder-structure']; // List valid channels
+      if (validChannels.includes(channel)) {
+        ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
+      }
+    },
+    removeAllListeners: (channel) => {
+      const validChannels = ['flask-port', 'folder-structure']; // List valid channels
+      if (validChannels.includes(channel)) {
+        ipcRenderer.removeAllListeners(channel);
+      }
+    }
+  }
+});
