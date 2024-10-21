@@ -1,31 +1,71 @@
-const { contextBridge, ipcRenderer } = require('electron');
-const fs = require('fs');
-const path = require('path');
+import { contextBridge, ipcRenderer } from 'electron';
+import { readFileSync as _readFileSync, existsSync as _existsSync } from 'fs';
+import { join as _join } from 'path';
 
-// Expose ipcRenderer, fs, and path to the renderer process using contextBridge
+// Define valid channels for IPC communication
+const validChannels = ['flask-port', 'folder-structure'];
+
+// Expose APIs to the renderer process securely
 contextBridge.exposeInMainWorld('electron', {
+  // IPC Renderer communication
   ipcRenderer: {
     send: (channel, data) => {
-      // Send messages to the main process
-      ipcRenderer.send(channel, data);
+      if (validChannels.includes(channel)) {
+        ipcRenderer.send(channel, data);
+      } else {
+        console.error(`Blocked attempt to send on channel: ${channel}`);
+      }
     },
     on: (channel, func) => {
-      // Receive messages from the main process
-      ipcRenderer.on(channel, (event, ...args) => func(event, ...args));
+      if (validChannels.includes(channel)) {
+        ipcRenderer.on(channel, (event, ...args) => func(...args));
+      } else {
+        console.error(`Blocked attempt to listen on channel: ${channel}`);
+      }
+    },
+    once: (channel, func) => {
+      if (validChannels.includes(channel)) {
+        ipcRenderer.once(channel, (event, ...args) => func(...args));
+      } else {
+        console.error(`Blocked attempt to listen once on channel: ${channel}`);
+      }
     }
   },
-  // Expose filesystem operations to renderer
+  
+  // File System operations, restricted to essential functions
   fs: {
-    readFileSync: (filePath, encoding) => fs.readFileSync(filePath, encoding),
-    existsSync: (filePath) => fs.existsSync(filePath),
+    readFileSync: (filePath, encoding = 'utf8') => {
+      try {
+        return _readFileSync(filePath, encoding);
+      } catch (error) {
+        console.error(`Error reading file at ${filePath}:`, error);
+        return null;
+      }
+    },
+    existsSync: (filePath) => {
+      try {
+        return _existsSync(filePath);
+      } catch (error) {
+        console.error(`Error checking existence of file at ${filePath}:`, error);
+        return false;
+      }
+    }
   },
-  // Expose path operations to renderer
+  
+  // Path operations, exposing only essential methods
   path: {
-    join: (...args) => path.join(...args),
+    join: (...args) => {
+      try {
+        return _join(...args);
+      } catch (error) {
+        console.error('Error joining paths:', error);
+        return null;
+      }
+    }
   }
 });
 
-// Example to check version numbers (existing functionality)
+// DOM content loaded listener to display version numbers
 window.addEventListener('DOMContentLoaded', () => {
   const replaceText = (selector, text) => {
     const element = document.getElementById(selector);

@@ -144,9 +144,9 @@ function createWindow(url) {
     height: 1000,
     icon: path.join(app.getAppPath(), 'app-icon.ico'),
     webPreferences: {
-      preload: path.join(app.getAppPath(), 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: true, // Ensures security
+      preload: path.join(app.getAppPath(), 'preload.js'), // Securely expose necessary APIs here
+      nodeIntegration: false,  // Keep this off unless absolutely necessary
+      contextIsolation: true,  // Isolate context for security
     },
   });
 
@@ -428,14 +428,14 @@ async function startApp() {
       }
       log.info('> Ready on http://localhost:3000');
     });
-    
-    await pollForFlaskPort();
+
 
     const folderStructure = await getFolderStructure();
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
 
-    mainWindow.webContents.once('did-finish-load', () => {
+    mainWindow.webContents.once('did-finish-load', async () => {
+      await pollForFlaskPort();
       mainWindow.webContents.send('folder-structure', folderStructure);
     });
 
