@@ -155,7 +155,10 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
-const preloadPath = path.join(__dirname, 'preload.js');
+const preloadPath = app.isPackaged
+  ? path.join(process.resourcesPath, 'preload.js')
+  : path.join(__dirname, 'preload.js');
+
 console.log(`Preload path: ${preloadPath}`);
 
 if (!fs.existsSync(preloadPath)) {
