@@ -155,8 +155,14 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
-const preloadPath = path.join(app.getAppPath(), 'preload.js');
+preloadPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'preload.js');
 console.log(`Preload path: ${preloadPath}`);
+
+if (!fs.existsSync(preloadPath)) {
+  console.error(`preload.js not found at ${preloadPath}`);
+} else {
+  console.log(`preload.js found at ${preloadPath}`);
+}
 
 function createWindow(url) {
   mainWindow = new BrowserWindow({
