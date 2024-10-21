@@ -20,100 +20,103 @@ export default function Home() {
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
   const [flaskPort, setFlaskPort] = useState(null);
 
- // Listen for flaskPort from main.js
- useEffect(() => {
-  let ipcRenderer;
+  // Pull the flaskPort from flask_port.json directly
+  useEffect(() => {
+    const fs = window.require('fs');
+    const path = window.require('path');
 
-  if (typeof window !== 'undefined' && window.require) {
-    ipcRenderer = window.require('electron').ipcRenderer;
-
-    // Listen for update events
-    ipcRenderer.on('update-in-progress', () => {
-      setUpdateMessage('Update in progress, please wait and follow the instructions to complete installation.');
-    });
-
-    ipcRenderer.on('update-ready', () => {
-      setUpdateMessage('Update downloaded. The application will restart to complete the update.');
-    });
-
-    // Listen for the Flask port sent from main.js
-    ipcRenderer.on('flask-port', (event, port) => {
-      console.log('Received Flask port:', port);
-      setFlaskPort(port); // Set Flask port when received
-    });
-
-    ipcRenderer.on('folder-structure', (event, folderStructure) => {
-      console.log('Received folder structure:', folderStructure); // Log folder structure received
-      setFolderStructure(folderStructure);  // Store folder structure in state
-    });
-  }
-}, []);
-
-// Initialize the app after the flaskPort is received
-useEffect(() => {
-  // Only attempt to initialize the app when flaskPort is available
-  if (flaskPort) {
-    initializeApp(flaskPort);
-  }
-}, [flaskPort]);
-
-const fetchFolders = async (port) => {
-  try {
-    const response = await axios.get(`http://localhost:${port}/list-folders`);
-    const filteredFolders = Object.fromEntries(
-      Object.entries(response.data).filter(([key]) => key.trim() !== '')
+    // Path to the JSON file
+    const flaskPortPath = path.join(
+      process.env.LOCALAPPDATA,
+      'associated-pension-automation-hub',
+      'flask_port.json'
     );
-    setFolderStructure(filteredFolders);
-  } catch (err) {
-    setError('Failed to fetch folder structure: ' + err.message);
-  }
-};
 
-const fetchScripts = async (port) => {
-  try {
-    const response = await axios.get(`http://localhost:${port}/list-scripts`);
-    setScripts(response.data.scripts);
-  } catch (err) {
-    setError('Failed to fetch scripts: ' + err.message);
-  }
-};
+    try {
+      // Read the port from the JSON file
+      const data = fs.readFileSync(flaskPortPath, 'utf8');
+      const jsonData = JSON.parse(data);
+      const port = jsonData.port;
 
-const fetchWebSocketPort = async (port) => {
-  try {
-    const response = await axios.get(`http://localhost:${port}/get-websocket-port`);
-    setWebsocketPort(response.data.port);
-  } catch (err) {
-    setError('Failed to fetch WebSocket port: ' + err.message);
-  }
-};
-
-const initializeApp = async (port) => {
-  try {
-    await fetchFolders(port);
-    await fetchScripts(port);
-    await fetchWebSocketPort(port);
-  } catch (err) {
-    setError('Error initializing the app: ' + err.message);
-  }
-};
-
-// Cleanup WebSocket connection on component unmount
-useEffect(() => {
-  return () => {
-    if (websocket) {
-      websocket.close();
+      if (port) {
+        setFlaskPort(port); // Set the port in state once it's retrieved
+        console.log(`Flask server port found: ${port}`);
+      } else {
+        console.error('No port found in the JSON file.');
+      }
+    } catch (error) {
+      console.error('Failed to read flask_port.json:', error);
     }
-  };
-}, [websocket]);
+  }, []);
 
-// Show loading message until flaskPort is received
-if (!flaskPort) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <h1 className="text-2xl font-bold text-white">Loading, please wait...</h1>
-    </div>
-  );
-}
+  // Initialize the app after the flaskPort is received
+  useEffect(() => {
+    if (!flaskPort) return;
+
+    const initializeApp = async (port) => {
+      try {
+        await fetchFolders(port);
+        await fetchScripts(port);
+        await fetchWebSocketPort(port);
+      } catch (err) {
+        setError('Error initializing the app: ' + err.message);
+      }
+    };
+
+    initializeApp(flaskPort);
+
+    // Fetch folders from Flask server
+    const fetchFolders = async (port) => {
+      try {
+        const response = await axios.get(`http://localhost:${port}/list-folders`);
+        const filteredFolders = Object.fromEntries(
+          Object.entries(response.data).filter(([key]) => key.trim() !== '')
+        );
+        setFolderStructure(filteredFolders);
+      } catch (err) {
+        setError('Failed to fetch folder structure: ' + err.message);
+      }
+    };
+
+    // Fetch scripts from Flask server
+    const fetchScripts = async (port) => {
+      try {
+        const response = await axios.get(`http://localhost:${port}/list-scripts`);
+        setScripts(response.data.scripts);
+      } catch (err) {
+        setError('Failed to fetch scripts: ' + err.message);
+      }
+    };
+
+    // Fetch WebSocket port from Flask server
+    const fetchWebSocketPort = async (port) => {
+      try {
+        const response = await axios.get(`http://localhost:${port}/get-websocket-port`);
+        setWebsocketPort(response.data.port);
+      } catch (err) {
+        setError('Failed to fetch WebSocket port: ' + err.message);
+      }
+    };
+    
+  }, [flaskPort]);
+
+  // Cleanup WebSocket connection on component unmount
+  useEffect(() => {
+    return () => {
+      if (websocket) {
+        websocket.close();
+      }
+    };
+  }, [websocket]);
+
+  // Show loading message until flaskPort is received
+  if (!flaskPort) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-white">Loading, please wait...</h1>
+      </div>
+    );
+  }
 
   // Handle folder click to display scripts within that folder
   const handleFolderClick = (folder) => {
