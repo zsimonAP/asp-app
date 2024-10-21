@@ -399,7 +399,6 @@ async function startApp() {
 
     log.info('Python process started successfully');
 
-    await pollForFlaskPort();
 
   } catch (error) {
     log.error(`Failed to start Python process: ${error.message}`);
@@ -429,6 +428,8 @@ async function startApp() {
       }
       log.info('> Ready on http://localhost:3000');
     });
+    
+    await pollForFlaskPort();
 
     const folderStructure = await getFolderStructure();
     const startUrl = await waitForNextJsServer(3000);
