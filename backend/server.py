@@ -51,6 +51,11 @@ def get_available_port():
         logging.info(f"Dynamic Flask server will run on port {port}")  # Debugging log for dynamic port
         return port
 
+@app_dynamic.route('/status', methods=['GET'])
+def status():
+    return jsonify({"status": "running"}), 200
+
+
 # Flask instance on the dynamic port (all processes)
 @app_dynamic.route('/list-folders', methods=['GET'])
 def list_folders():
