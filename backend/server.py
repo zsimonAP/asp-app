@@ -1,4 +1,5 @@
 import os
+import socket
 import sys
 import logging
 import json
@@ -44,13 +45,22 @@ CORS(app_dynamic)
 
 # Create dynamic port for second Flask server
 def get_available_port():
-    while True:
-        port = random.randint(5002, 6000)  # Choose a port in this range
+    # Create a new socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # Bind to port 0 to allow the OS to assign an available port
+        s.bind(('0.0.0.0', 0))
+        # Retrieve the assigned port
+        port = s.getsockname()[1]
+        
+        # Write the available port to the JSON file
         with open(FLASK_PORT_PATH, "w") as f:
             json.dump({"port": port}, f)
-        logging.info(f"Dynamic Flask server will run on port {port}")  # Debugging log for dynamic port
+        
+        logging.info(f"Dynamic Flask server will run on port {port}")
+        
         return port
-
+    
+    
 @app_dynamic.route('/status', methods=['GET'])
 def status():
     return jsonify({"status": "running"}), 200
