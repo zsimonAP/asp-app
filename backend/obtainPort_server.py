@@ -2,6 +2,8 @@ import os
 import json
 import logging
 import threading
+import socket
+import time
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -39,6 +41,29 @@ def shutdown():
     shutdown_thread.start()
     return 'Server shutting down...', 200
 
+# Function to check if a port is available
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('0.0.0.0', port)) == 0
+
+# Try to start the server on port 5000, retrying up to 15 times with a 2-second delay
+def try_start_server():
+    max_retries = 15
+    retries = 0
+    port = 5000
+    while retries < max_retries:
+        if not is_port_in_use(port):
+            logging.info(f"Port {port} is available, starting the server...")
+            app.run(debug=False, host='0.0.0.0', port=port)
+            break
+        else:
+            logging.warning(f"Port {port} is in use. Retrying in 2 seconds... ({retries + 1}/{max_retries})")
+            retries += 1
+            time.sleep(2)
+    if retries == max_retries:
+        logging.error(f"Failed to start the server on port {port} after {max_retries} attempts.")
+        os._exit(1)
+
 if __name__ == "__main__":
-    logging.info("Starting obtainPort Flask server on port 5000...")
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    logging.info("Attempting to start obtainPort Flask server on port 5000...")
+    try_start_server()
