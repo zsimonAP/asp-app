@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.1.53-TEST",
+  "version": "1.1.54-TEST",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {
@@ -33,6 +33,7 @@
     "productName": "associated-pension-automation-hub",
     "files": [
       "app/**/*",
+      "app/page.js",
       "backend/**/*",
       ".next/**/*",
       "public/**/*",
