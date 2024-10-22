@@ -43,10 +43,17 @@ export default function Home() {
       const response = await axios.post('http://localhost:5000/shutdown');
       console.log('Server shutdown successfully:', response.data);
     } catch (err) {
-      setError('Error shutting down server: ' + err.message);
-      console.error('Error shutting down server:', err);
+      // Check if the error is due to a network issue (like server shutdown)
+      if (err.message === 'Network Error') {
+        console.log('Server shut down before receiving the response. Suppressing network error.');
+      } else {
+        // Only show other types of errors
+        setError('Error shutting down server: ' + err.message);
+        console.error('Error shutting down server:', err);
+      }
     }
   };
+  
 
   // Fetch the Flask port when the component mounts
   useEffect(() => {
