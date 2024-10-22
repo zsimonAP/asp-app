@@ -1,6 +1,6 @@
 {
   "name": "associated-pension-automation-hub",
-  "version": "1.1.55-TEST",
+  "version": "1.1.56-TEST",
   "description": "An automation hub for pension administration",
   "main": "main.js",
   "scripts": {

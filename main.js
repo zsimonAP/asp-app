@@ -12,12 +12,15 @@ const firebaseAdmin = require('firebase-admin');
 // Setup logging
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
+log.transports.console.level = 'info';  // This will print logs to the console
+log.transports.file.level = 'info';
 log.info('App starting...');
 
 let pythonProcess;
 let mainWindow;
 let isUpdateInProgress = false;
 let flaskPort = null; 
+
 
 // Define the path to the Firebase credentials file
 const serviceAccountPath = app.isPackaged
@@ -137,6 +140,8 @@ async function downloadPythonFiles() {
     throw error;
   }
 }
+
+
 const preloadPath = path.join(app.getAppPath(), 'preload.js')
 console.log(`Preload path: ${preloadPath}`);
 
@@ -163,6 +168,16 @@ function createWindow(url) {
   // Handle window close
   mainWindow.on('closed', async () => {
     await stopAllProcesses(); // Gracefully stop all processes
+  });
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (flaskPort) {
+      log.info('SENDING FLASK PORT');
+      mainWindow.webContents.send('flask-port', flaskPort);
+      log.info('SENT FLASK PORT');
+    } else {
+      log.error('Flask port is not available to send to renderer.');
+    }
   });
 }
 
@@ -437,17 +452,9 @@ async function startApp() {
       log.info('> Ready on http://localhost:3000');
     });
 
-
     const folderStructure = await getFolderStructure();
     const startUrl = await waitForNextJsServer(3000);
     createWindow(startUrl);
-
-    mainWindow.webContents.once('did-finish-load', async () => {
-      log.info('SENDING FLASK PORT');
-      mainWindow.webContents.send('flask-port', flaskPort);
-      log.info('SENT FLASK PORT');
-      mainWindow.webContents.send('folder-structure', folderStructure);
-    });
 
     await downloadPythonFiles();
 
