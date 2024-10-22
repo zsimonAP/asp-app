@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import threading
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -33,10 +34,9 @@ def get_flask_port():
     
 @app.route('/shutdown', methods=['POST'])
 def shutdown():
-    func = request.environ.get('werkzeug.server.shutdown')
-    if func is None:
-        raise RuntimeError('Not running with the Werkzeug Server')
-    func()
+    logging.info('Shutdown request received, stopping server...')
+    shutdown_thread = threading.Thread(target=lambda: os._exit(0))  # Graceful exit
+    shutdown_thread.start()
     return 'Server shutting down...', 200
 
 if __name__ == "__main__":
