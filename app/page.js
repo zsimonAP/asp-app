@@ -20,38 +20,56 @@ export default function Home() {
   const [isScriptRunning, setIsScriptRunning] = useState(false);  // New state to track if a script is running
   const [flaskPort, setFlaskPort] = useState(null);
 
-    // Listen for flaskPort from main.js using ipcRenderer
-    useEffect(() => {
-      if (window.electronAPI && typeof window.electronAPI.receiveFlaskPort === 'function') {
-        console.log('electronAPI is defined');
-    
-        window.electronAPI.receiveFlaskPort((port) => {
-          console.log(`Received Flask port: ${port}`);
-          setFlaskPort(port);
-        });
-      } else {
-        console.error('electronAPI is undefined or receiveFlaskPort is not a function');
+
+  // Function to fetch the Flask port from obtainPort_server.py
+  const getFlaskPort = async () => {
+    try {
+      const response = await axios.get('http://localhost:5000/get-flask-port');
+      const port = response.data.port;
+      setFlaskPort(port);
+      console.log(`Flask port obtained: ${port}`);
+
+      // After obtaining the port, send a request to shutdown the server
+      await shutdownServer();
+    } catch (err) {
+      setError('Error fetching Flask port: ' + err.message);
+      console.error('Error fetching Flask port:', err);
+    }
+  };
+
+  // Function to shut down the Flask server
+  const shutdownServer = async () => {
+    try {
+      const response = await axios.post('http://localhost:5000/shutdown');
+      console.log('Server shutdown successfully:', response.data);
+    } catch (err) {
+      setError('Error shutting down server: ' + err.message);
+      console.error('Error shutting down server:', err);
+    }
+  };
+
+  // Fetch the Flask port when the component mounts
+  useEffect(() => {
+    getFlaskPort();
+  }, []);
+
+  // Initialize the app after the flaskPort is received
+  useEffect(() => {
+    if (!flaskPort) return;
+
+    const initializeApp = async (port) => {
+      try {
+        await fetchFolders(port);
+        await fetchScripts(port);
+        await fetchWebSocketPort(port);
+      } catch (err) {
+        setError('Error initializing the app: ' + err.message);
       }
-    }, []);
-    
-    
-  
-    // Initialize the app after the flaskPort is received
-    useEffect(() => {
-      if (!flaskPort) return;
-  
-      const initializeApp = async (port) => {
-        try {
-          await fetchFolders(port);
-          await fetchScripts(port);
-          await fetchWebSocketPort(port);
-        } catch (err) {
-          setError('Error initializing the app: ' + err.message);
-        }
-      };
-  
-      initializeApp(flaskPort);
-    }, [flaskPort]);
+    };
+
+    initializeApp(flaskPort);
+  }, [flaskPort]);
+
 
     // Fetch folders from Flask server
     const fetchFolders = async (port) => {
