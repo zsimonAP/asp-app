@@ -124,8 +124,13 @@ export default function Home() {
   // Show loading message until flaskPort is received
   if (!flaskPort) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-white">Loading, please wait...</h1>
+      <div className="min-h-screen flex flex-col p-6 bg-blue-600 border-4 border-white flex items-center justify-center">
+        <h1 className="text-2xl font-bold text-white">Loading, Please Wait</h1>
+        <div className="flex space-x-2 mt-4">
+          <div className="dot bg-white w-4 h-4 rounded-full"></div>
+          <div className="dot bg-white w-4 h-4 rounded-full"></div>
+          <div className="dot bg-white w-4 h-4 rounded-full"></div>
+        </div>
       </div>
     );
   }
