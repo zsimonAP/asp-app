@@ -396,7 +396,6 @@ export default function Home() {
                     <label className="bg-white hover:bg-blue-700 text-blue-600 px-4 py-2 rounded-lg cursor-pointer mr-4">
                       <input
                         type="file"
-                        accept=".csv"
                         onChange={(e) => handleFileChange(index, e.target.files[0])}
                         className="hidden" // Hide the default file input
                       />
