@@ -58,29 +58,19 @@ async function getFolderStructure() {
     log.info(`Fetched ${files.length} files from Firebase.`);
 
     const folderStructure = {};
-
     files.forEach((file) => {
       const filePathParts = file.name.split('/');
-      let currentLevel = folderStructure;
+      const folder = filePathParts[0];
+      const fileName = filePathParts.slice(1).join('/');
+      log.info(`Processing file: ${file.name} (Folder: ${folder}, File: ${fileName})`);
 
-      // Traverse through each part of the path to build the nested structure
-      filePathParts.forEach((part, index) => {
-        if (index === filePathParts.length - 1) {
-          // It's a file; add it to the current folder
-          if (!currentLevel.files) {
-            currentLevel.files = [];
-          }
-          if (part.endsWith('.py')) {
-            currentLevel.files.push(part);
-          }
-        } else {
-          // It's a folder; create if it doesn't exist
-          if (!currentLevel[part]) {
-            currentLevel[part] = {};
-          }
-          currentLevel = currentLevel[part];
+      if (fileName && fileName.endsWith('.py')) {
+        if (!folderStructure[folder]) {
+          log.info(`Creating folder entry for: ${folder}`);
+          folderStructure[folder] = [];
         }
-      });
+        folderStructure[folder].push(fileName);
+      }
     });
 
     log.info('Folder structure created successfully.');
@@ -90,7 +80,6 @@ async function getFolderStructure() {
     throw error;
   }
 }
-
 
 
 async function downloadPythonFiles() {
