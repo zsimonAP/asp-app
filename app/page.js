@@ -141,36 +141,6 @@ export default function Home() {
     setSelectedFolder(folder);  // Set the selected folder when clicked
   };
 
-  const renderFolder = (folder, folderName) => {
-    return (
-      <div key={folderName} className="folder">
-        <button
-          onClick={() => setSelectedFolder(folderName)}
-          className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md"
-        >
-          <span className="text-4xl">📁</span> {folderName}
-        </button>
-        {selectedFolder === folderName && (
-          <div className="ml-6">
-            {folder.files && folder.files.map((file) => (
-              <button
-                key={file}
-                onClick={() => handleScriptClick(`${folderName}/${file}`)}
-                className="bg-blue-100 text-black hover:bg-blue-400 font-semibold py-2 px-4 rounded-lg shadow-md mt-2"
-              >
-                📝 {file.replace('.py', '')}
-              </button>
-            ))}
-            {Object.keys(folder).filter((key) => key !== 'files').map((subfolderName) =>
-              renderFolder(folder[subfolderName], `${folderName}/${subfolderName}`)
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
-  
-
   // Handle script click
   const handleScriptClick = (script) => {
     if (isScriptRunning) return;
@@ -280,8 +250,6 @@ export default function Home() {
   
     setWebsocket(ws);
   };
-
-  
   
   return (
     <div className="min-h-screen flex flex-col p-6 bg-blue-600 border-4 border-white">
@@ -375,7 +343,20 @@ export default function Home() {
           </>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.keys(folderStructure).map((folderName) => renderFolder(folderStructure[folderName], folderName))}
+              {Object.keys(folderStructure).map((folder) => (
+                <button
+                  key={folder}
+                  className="bg-yellow-100 text-black hover:bg-yellow-400 font-semibold py-2 px-4 rounded-lg shadow-md folder-button flex items-center space-x-4"
+                  onClick={() => handleFolderClick(folder)}
+                >
+                  <div className="text-4xl"> {/* This makes the folder icon bigger */}
+                    📁 {/* Folder icon */}
+                  </div>
+                  <div className="text-xl">
+                    {folder} {/* Folder name */}
+                  </div>
+                </button>
+              ))}
             </div>
           )}
 
