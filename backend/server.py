@@ -70,22 +70,16 @@ def status():
 @app_dynamic.route('/list-folders', methods=['GET'])
 def list_folders():
     try:
-        def build_nested_structure(path):
-            structure = {}
-            for entry in os.listdir(path):
-                full_path = os.path.join(path, entry)
-                if os.path.isdir(full_path):
-                    structure[entry] = build_nested_structure(full_path)
-                elif entry.endswith('.py'):
-                    structure.setdefault('files', []).append(entry)
-            return structure
-
-        folder_structure = build_nested_structure(SCRIPTS_DIR)
+        folder_structure = {}
+        for root, dirs, files in os.walk(SCRIPTS_DIR):
+            relative_root = os.path.relpath(root, SCRIPTS_DIR)
+            if relative_root == ".":
+                relative_root = ""
+            folder_structure[relative_root] = [file for file in files if file.endswith('.py')]
         return jsonify(folder_structure), 200
     except Exception as e:
         logging.error(f"Error listing folders: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 
 @app_dynamic.route('/list-scripts', methods=['GET'])
